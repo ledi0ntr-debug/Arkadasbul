@@ -776,15 +776,22 @@ async function loadMessages(){
 }
 async function loadNotifications(){
   // friend requests as notifications
-  const { data } = await db.from('friendships').select('*, sender:profiles!friendships_sender_id_fkey(username,avatar)').eq('receiver_id',currentUser.id).eq('status','pending');
+  const { data: fsData } = await db.from('friendships').select('*').eq('receiver_id',currentUser.id).eq('status','pending');
+  const data = (fsData||[]).map(f => ({...f, sender: realUsers.find(u=>u.id===f.sender_id)||{username:'Biri',avatar:'wolf'}}));
   notifications = data || [];
   const dot = document.getElementById('notifDot');
   if(dot) dot.style.display = notifications.length > 0 ? 'block' : 'none';
 }
 async function loadDiscoverPosts(){
   try {
-    const { data, error } = await db.from('posts').select('*, author:profiles!posts_author_id_fkey(username,avatar)').order('created_at',{ascending:false}).limit(30);
-    if(!error) discoverPosts = data || [];
+    const { data, error } = await db.from('posts').select('*').order('created_at',{ascending:false}).limit(30);
+    if(!error && data){
+      // manually join author info
+      discoverPosts = data.map(p => {
+        const author = realUsers.find(u => u.id === p.author_id) || myProfile;
+        return { ...p, author };
+      });
+    }
   } catch(e) { discoverPosts = []; }
 }
 

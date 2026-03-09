@@ -614,6 +614,46 @@
     to { opacity: 1; transform: translateY(0); }
   }
   .fade-in { animation: fadeInUp 0.4s ease forwards; }
+
+  /* Location badge */
+  .location-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(6,182,212,0.15);
+    border: 1px solid rgba(6,182,212,0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #06B6D4;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .location-badge:hover { background: rgba(6,182,212,0.25); }
+
+  .anon-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(168,85,247,0.15);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #C084FC;
+  }
+
+  .distance-tag {
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(6,182,212,0.15);
+    color: #06B6D4;
+  }
+
 </style>
 </head>
 <body>
@@ -650,6 +690,46 @@ const interests = ['🎮 Oyun','🎵 Müzik','📚 Kitap','✈️ Seyahat','🏃
 let realUsers = [];
 let myFriendships = [];
 let activeMessages = null; // currently open chat
+let myLocation = null; // {lat, lng, city}
+
+// ── Location ──
+async function getLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        // Reverse geocode with free API
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+          const data = await res.json();
+          const city = data.address.city || data.address.town || data.address.county || 'Bilinmiyor';
+          myLocation = { lat, lng, city };
+        } catch(e) {
+          myLocation = { lat, lng, city: 'Bilinmiyor' };
+        }
+        resolve(myLocation);
+      },
+      () => resolve(null),
+      { timeout: 5000 }
+    );
+  });
+}
+
+function calcDistance(lat1, lng1, lat2, lng2) {
+  if (!lat1 || !lat2) return null;
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLng = (lat2-lng1) * Math.PI/180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)*Math.sin(dLng/2);
+  const c = 2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  const d = R*c;
+  if (d < 1) return Math.round(d*1000) + ' m';
+  return Math.round(d) + ' km';
+}
 
 // ── Init ──
 async function init() {
@@ -767,6 +847,13 @@ async function checkSavedSession() {
 }
 
 async function loadUsers() {
+  // Also update my location
+  const loc = await getLocation();
+  if (loc) {
+    myLocation = loc;
+    await db.from('profiles').update({ lat: loc.lat, lng: loc.lng, city: loc.city }).eq('id', currentUser.id);
+  }
+  
   const { data: users } = await db.from('profiles').select('*').neq('id', currentUser.id);
   realUsers = users || [];
   const { data: friendships } = await db.from('friendships').select('*')
@@ -878,8 +965,11 @@ let selectedInterests = [];
 function showProfileSetup() {
   document.getElementById('app').innerHTML = `
     <div class="profile-setup fade-in">
-      <div class="setup-title">Profili Oluştur 🎨</div>
-      <div class="setup-sub">Kendini tanıt, arkadaşlar bulsun!</div>
+      <div class="setup-title">Profili Oluştur 🎭</div>
+      <div class="setup-sub">Anonim kal, yakınındakilerle tanış!</div>
+      <div style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);border-radius:14px;padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.7);">
+        🎭 <strong style="color:#C084FC;">Anonim mod aktif</strong> — Gerçek ismin ve fotoğrafın gizli kalır. Sadece takma adın ve ilgi alanların görünür!
+      </div>
 
       <div class="input-group">
         <div class="input-label">Kullanıcı Adı</div>
@@ -954,12 +1044,18 @@ async function saveProfile() {
     return;
   }
 
+  // Get location
+  const loc = await getLocation();
+  
   const { error } = await db.from('profiles').upsert({
     id: currentUser.id,
     email: currentUser.email || '',
-    username, city, age: parseInt(age), bio,
+    username, city: loc ? loc.city : city, age: parseInt(age), bio,
     avatar: selectedAvatar,
     interests: selectedInterests,
+    lat: loc ? loc.lat : null,
+    lng: loc ? loc.lng : null,
+    is_anon: true,
     created_at: new Date().toISOString()
   });
 
@@ -999,16 +1095,18 @@ function renderHome() {
           : pending
           ? `<button class="connect-btn added" disabled>⏳</button>`
           : `<button class="connect-btn add" onclick="sendFriendRequest('${u.id}','${u.username}',this)">➕</button>`;
+        const dist = (myLocation && u.lat && u.lng) ? calcDistance(myLocation.lat, myLocation.lng, u.lat, u.lng) : null;
         return `
-          <div class="person-card" onclick="openChat('${u.id}','${u.username}','${u.avatar||'👤'}')">
-            <div class="person-avatar" style="background:linear-gradient(135deg,rgba(255,107,157,0.15),rgba(168,85,247,0.15));">
-              ${u.avatar || '👤'}
+          <div class="person-card" onclick="openChat('${u.id}','${u.username}','🎭')">
+            <div class="person-avatar" style="background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(255,107,157,0.15));">
+              🎭
               <div class="status online"></div>
             </div>
             <div class="person-info">
               <div class="person-name">${u.username}${u.age ? ', '+u.age : ''}</div>
               <div class="person-bio">${u.bio || '...'}</div>
               <div class="person-tags">
+                ${dist ? `<span class="distance-tag">📍 ${dist}</span>` : u.city ? `<span class="distance-tag">📍 ${u.city}</span>` : ''}
                 ${(u.interests||[]).slice(0,2).map(i => `<span class="tag" style="background:rgba(168,85,247,0.2);color:#C084FC;">${i}</span>`).join('')}
               </div>
             </div>
@@ -1033,8 +1131,15 @@ function renderHome() {
       <div class="header">
         <div class="logo">TanışBul</div>
         <div class="header-right">
-          <div class="icon-btn" onclick="loadUsers().then(renderHome)">🔄</div>
+          <div class="anon-badge">🎭 Anonim</div>
+          <div class="icon-btn" onclick="loadUsers().then(renderHome)" title="Yenile">🔄</div>
         </div>
+      </div>
+      <div style="padding:0 24px 16px;display:flex;align-items:center;gap:10px;">
+        <div class="location-badge" onclick="loadUsers().then(renderHome)">
+          📍 ${myLocation ? myLocation.city : 'Konum al...'}
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.3);">${realUsers.length} kişi yakında</div>
       </div>
 
       <div class="search-wrap">

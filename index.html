@@ -946,7 +946,7 @@ function renderDiscover(){
     <div style="padding:16px 20px 8px;">
       <button class="btn-main" style="padding:12px;" onclick="postDiscover()">Paylaş 🚀</button>
     </div>
-    <div id="postsList">${postsHTML}</div>`;
+    <div id="postsList">${renderDiscoverPosts()}</div>`;
 }
 function initDiscoverPage(){}
 async function postDiscover(){
@@ -954,33 +954,44 @@ async function postDiscover(){
   if(!inp) return;
   const raw = inp.value.trim();
   if(!raw){ showToast('❌ Bir şeyler yaz!'); return; }
-  const content = filterBadWords(raw);
-  let postError = null;
+  const text = filterBadWords(raw);
   try {
-    const res = await db.from('posts').insert({ author_id: currentUser.id, content, likes: 0, created_at: new Date().toISOString() });
-    postError = res.error;
-  } catch(e) { postError = {message: 'posts tablosu yok'}; }
-  const error = postError;
-  if(error){
-    // posts table might not exist, show locally
-    discoverPosts.unshift({ id: Date.now(), author: myProfile, content, likes: 0, created_at: new Date().toISOString() });
-  } else {
-    await loadDiscoverPosts();
+    const { error } = await db.from('posts').insert({ 
+      author_id: currentUser.id, 
+      content: text, 
+      likes: 0, 
+      created_at: new Date().toISOString() 
+    });
+    if(error) throw error;
+  } catch(e) {
+    // save locally if table missing
+    discoverPosts.unshift({ id: Date.now(), author: myProfile, content: text, likes: 0, created_at: new Date().toISOString() });
   }
   inp.value = '';
   await loadDiscoverPosts();
-  const postsEl = document.getElementById('postsList');
-  if(postsEl){
-    const postsHTML = discoverPosts.length === 0
-      ? '<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">Henüz gönderi yok</div></div>'
-      : discoverPosts.map(p => {
-          const av = getAvatar(p.author?.avatar);
-          return '<div class="discover-post"><div class="disc-user"><div class="disc-av"><div style="font-size:24px;">'+av.emoji+'</div></div><div><div class="disc-username">🎭 '+(p.author?.username||'Anonim')+'</div><div class="disc-time">'+timeAgo(p.created_at)+'</div></div></div><div class="disc-content">'+p.content+'</div><div class="disc-actions"><div class="disc-action" onclick="likePost(''+p.id+'',this)">❤️ '+(p.likes||0)+'</div></div></div>';
-        }).join('');
-    postsEl.innerHTML = postsHTML;
-  }
+  const disc = document.getElementById('postsList');
+  if(disc) disc.innerHTML = renderDiscoverPosts();
   showToast('✅ Paylaşıldı!');
 }
+
+function renderDiscoverPosts(){
+  if(discoverPosts.length === 0) return '<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">Henüz gönderi yok</div><div class="empty-sub">İlk gönderiyi sen yap!</div></div>';
+  return discoverPosts.map(p => {
+    const av = getAvatar(p.author?.avatar);
+    return '<div class="discover-post">' +
+      '<div class="disc-user">' +
+        '<div class="disc-av"><div style="font-size:24px;">' + av.emoji + '</div></div>' +
+        '<div><div class="disc-username">🎭 ' + (p.author?.username||'Anonim') + '</div>' +
+        '<div class="disc-time">' + timeAgo(p.created_at) + '</div></div>' +
+      '</div>' +
+      '<div class="disc-content">' + p.content + '</div>' +
+      '<div class="disc-actions">' +
+        '<div class="disc-action" onclick="likePost(' + JSON.stringify(p.id) + ',this)">❤️ ' + (p.likes||0) + '</div>' +
+      '</div></div>';
+  }).join('');
+}
+
+
 async function likePost(id, el){
   el.classList.add('liked');
   const current = parseInt(el.textContent.replace(/[^0-9]/g,''))||0;

@@ -300,12 +300,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </head>
 <body>
 
-<!-- WELCOME -->
-<div id="welcomeScreen">
-  <div class="welcome-particles" id="particles"></div>
-  <div class="welcome-logo">TanışBul 🎭</div>
-  <div style="font-size:14px;color:var(--muted);">Anonim kal, yakınındakilerle tanış!</div>
-</div>
+<!-- WELCOME REMOVED -->
+<div id="welcomeScreen" style="display:none;"></div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -588,17 +584,14 @@ function createParticles(){
 // INIT
 // ────────────────────────────────────────────
 async function init(){
-  const ws = document.getElementById('welcomeScreen');
   const { data: { session } } = await db.auth.getSession();
   if(session){
-    if(ws) ws.classList.add('hidden');
     currentUser = session.user;
     await loadMyProfile();
     if(!myProfile){ show('setupScreen'); renderSetup(); }
     else { showApp(); }
   } else {
-    createParticles();
-    // welcomeScreen hides itself via createParticles timeout
+    show('authScreen');
   }
 }
 

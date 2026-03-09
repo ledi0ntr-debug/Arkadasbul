@@ -149,6 +149,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .disc-inp{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:13px 16px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;}
 .disc-inp:focus{border-color:var(--pink);}
 .disc-inp::placeholder{color:var(--muted);}
+.disc-cat{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;color:var(--muted);transition:all 0.2s;}
+.disc-cat.active{background:linear-gradient(135deg,rgba(255,107,157,0.15),rgba(168,85,247,0.15));border-color:var(--pink);color:var(--text);}
+.disc-cat:hover{border-color:rgba(168,85,247,0.3);}
 .post-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin:0 16px 14px;}
 .post-user{display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;}
 .post-av{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--surface);}
@@ -385,7 +388,7 @@ let users = [], friends = [], msgs = [], notifs = [], posts = [], follows = [];
 let myLoc = null, locFilter = false;
 let msgLimit = { n: 20, resetAt: null };
 let curPage = 'home', chatWith = null;
-let selAv = null, selGenderVal = null, selInts = [];
+let selAv = null, selGenderVar = null, selInts = [];
 let lang = 'tr';
 
 // ── AVATARS ──
@@ -489,7 +492,7 @@ function renderSetup(){
   document.getElementById('interestGrid').innerHTML=INTS.map(i=>`<div class="int-tag" onclick="toggleInt(this,'${i}')">${i}</div>`).join('');
 }
 function pickAv(id){ selAv=id; document.querySelectorAll('.av-item').forEach(e=>e.classList.remove('sel')); document.getElementById('av-'+id).classList.add('sel'); }
-function selGender(g){ selGenderVal=g; document.querySelectorAll('.gender-btn').forEach(e=>e.classList.remove('sel')); document.getElementById('g-'+g).classList.add('sel'); }
+function selGender(g){ selGenderVar=g; document.querySelectorAll('.gender-btn').forEach(e=>e.classList.remove('sel')); document.getElementById('g-'+g).classList.add('sel'); }
 function toggleInt(el,v){ if(selInts.includes(v)){ selInts=selInts.filter(i=>i!==v); el.classList.remove('sel'); } else { if(selInts.length>=5){ toast('En fazla 5!'); return; } selInts.push(v); el.classList.add('sel'); } }
 
 async function saveProfile(){
@@ -501,7 +504,7 @@ async function saveProfile(){
   const loc=await getLoc();
   const {error}=await db.from('profiles').upsert({
     id:me.id, email:me.email||'', username, age, bio,
-    avatar:selAv, gender:selGenderVal, interests:selInts,
+    avatar:selAv, gender:selGenderVar, interests:selInts,
     lat:loc?.lat||null, lng:loc?.lng||null, city:loc?.city||null,
     is_anon:true, lang, created_at:new Date().toISOString()
   });
@@ -574,6 +577,7 @@ function goPage(p){
   curPage=p;
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   const ni=document.getElementById('ni-'+p); if(ni) ni.classList.add('active');
+  if(p==='messages') showMsgDot(false);
   const el=document.getElementById('mobContent'); if(el) el.innerHTML=getPage(p);
 }
 
@@ -647,27 +651,64 @@ function toggleLocFilter(){ locFilter=!locFilter; render(curPage); }
 
 // ── DISCOVER ──
 function pageDiscover(){
-  const postsHtml = posts.length===0
-    ? '<div class="empty"><div class="empty-ico">💬</div><div class="empty-txt">Henüz gönderi yok</div><div class="empty-sub">İlk gönderiyi sen yap!</div></div>'
-    : posts.map(p=>{
-        const a=av(p.author?.avatar);
-        return '<div class="post-card">'+
-          '<div class="post-user" onclick="openProf(\''+p.author_id+'\')">'+
-            '<div class="post-av">'+a.e+'</div>'+
-            '<div><div class="post-name">🎭 '+(p.author?.username||'Anonim')+'</div>'+
-            '<div class="post-time">'+ago(p.created_at)+'</div></div>'+
-          '</div>'+
-          '<div class="post-content">'+p.content+'</div>'+
-          '<div class="post-actions">'+
-            '<div class="post-action" onclick="likePost(this,\''+p.id+'\','+p.likes+')">❤️ '+p.likes+'</div>'+
-          '</div></div>';
-      }).join('');
-
+  const postsHtml = buildPostsHtml(posts);
   return '<div class="disc-inp-wrap">'+
-    '<input class="disc-inp" id="discInp" placeholder="💬 Toplulukla bir şeyler paylaş..." onkeydown="if(event.key===\'Enter\')submitPost()">'+
+    '<textarea class="disc-inp" id="discInp" placeholder="💬 Toplulukla bir şeyler paylaş..." style="resize:none;height:80px;"></textarea>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">'+
+      '<div style="font-size:12px;color:var(--muted);">Enter ile gönder</div>'+
+      '<button class="btn btn-sm" onclick="submitPost()">Paylaş 🚀</button>'+
     '</div>'+
-    '<div style="padding:12px 18px 4px;"><button class="btn btn-sm" onclick="submitPost()">Paylaş 🚀</button></div>'+
-    '<div id="postList" style="padding-top:8px;">'+postsHtml+'</div>';
+    '</div>'+
+    '<div style="padding:8px 18px 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">'+
+      '<div class="disc-cat active" id="cat-all" onclick="filterPosts(\'all\',this)">🌍 Tümü</div>'+
+      '<div class="disc-cat" id="cat-hot" onclick="filterPosts(\'hot\',this)">🔥 Popüler</div>'+
+      '<div class="disc-cat" id="cat-new" onclick="filterPosts(\'new\',this)">✨ Yeni</div>'+
+    '</div>'+
+    '<div id="postList" style="padding-top:6px;">'+postsHtml+'</div>';
+}
+
+function buildPostsHtml(list){
+  if(list.length===0) return '<div class="empty"><div class="empty-ico">💬</div><div class="empty-txt">Henüz gönderi yok</div><div class="empty-sub">İlk gönderiyi sen yap!</div></div>';
+  return list.map(p=>{
+    const a=av(p.author?.avatar);
+    const isMe=p.author_id===me.id;
+    return '<div class="post-card">'+
+      '<div class="post-user" onclick="openProf(\''+p.author_id+'\')">'+
+        '<div class="post-av" style="background:linear-gradient(135deg,'+a.c+'25,'+a.c+'45);">'+a.e+'</div>'+
+        '<div style="flex:1;"><div class="post-name">🎭 '+(p.author?.username||'Anonim')+'</div>'+
+        '<div class="post-time">'+ago(p.created_at)+'</div></div>'+
+        (isMe?'<div onclick="event.stopPropagation();deletePost(\''+p.id+'\')" style="font-size:16px;cursor:pointer;color:var(--muted);padding:4px;">🗑️</div>':'')+
+      '</div>'+
+      '<div class="post-content">'+p.content+'</div>'+
+      '<div class="post-actions">'+
+        '<div class="post-action" onclick="likePost(this,\''+p.id+'\','+p.likes+')">❤️ '+p.likes+'</div>'+
+        '<div class="post-action" onclick="replyPost(\''+( p.author?.username||'Anonim')+'\')">💬 Yanıtla</div>'+
+        '<div class="post-action" onclick="openProf(\''+p.author_id+'\')">👤 Profil</div>'+
+      '</div></div>';
+  }).join('');
+}
+
+function filterPosts(type,el){
+  document.querySelectorAll('.disc-cat').forEach(e=>e.classList.remove('active'));
+  if(el) el.classList.add('active');
+  let filtered=[...posts];
+  if(type==='hot') filtered=filtered.sort((a,b)=>(b.likes||0)-(a.likes||0));
+  if(type==='new') filtered=filtered.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const list=document.getElementById('postList');
+  if(list) list.innerHTML=buildPostsHtml(filtered);
+}
+
+function replyPost(username){
+  const inp=document.getElementById('discInp');
+  if(inp){ inp.value='@'+username+' '; inp.focus(); }
+}
+
+async function deletePost(id){
+  await db.from('posts').delete().eq('id',id).eq('author_id',me.id);
+  await loadPosts();
+  const list=document.getElementById('postList');
+  if(list) list.innerHTML=buildPostsHtml(posts);
+  toast('🗑️ Gönderi silindi');
 }
 
 async function likePost(el,id,cur){
@@ -687,21 +728,7 @@ async function submitPost(){
   inp.value='';
   await loadPosts();
   const list=document.getElementById('postList');
-  if(list){
-    list.innerHTML=posts.length===0?'<div class="empty"><div class="empty-ico">💬</div></div>':posts.map(p=>{
-      const a=av(p.author?.avatar);
-      return '<div class="post-card">'+
-        '<div class="post-user" onclick="openProf(\''+p.author_id+'\')">'+
-          '<div class="post-av">'+a.e+'</div>'+
-          '<div><div class="post-name">🎭 '+(p.author?.username||'Anonim')+'</div>'+
-          '<div class="post-time">'+ago(p.created_at)+'</div></div>'+
-        '</div>'+
-        '<div class="post-content">'+p.content+'</div>'+
-        '<div class="post-actions">'+
-          '<div class="post-action" onclick="likePost(this,\''+p.id+'\','+p.likes+')">❤️ '+p.likes+'</div>'+
-        '</div></div>';
-    }).join('');
-  }
+  if(list) list.innerHTML=buildPostsHtml(posts);
   toast('✅ Paylaşıldı!');
 }
 
@@ -985,9 +1012,27 @@ async function addFriend(toId,username,btn){
 function setupRealtime(){
   db.channel('tb_msgs').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},async(p)=>{
     const m=p.new;
-    if(m.receiver_id===me.id||m.sender_id===me.id){
+    if(m.receiver_id===me.id){
       await loadMsgs();
+      // Show notification toast
+      const sender=users.find(x=>x.id===m.sender_id);
+      const sname=sender?.username||'Biri';
+      const sav=av(sender?.avatar||'wolf');
+      if(curPage!=='messages'&&chatWith!==m.sender_id){
+        toast(sav.e+' '+sname+' mesaj gönderdi!',3500);
+        // Flash message nav icon
+        const ni=document.getElementById('ni-messages');
+        if(ni){ ni.style.color='var(--pink)'; setTimeout(()=>ni.style.color='',3000); }
+        // Show unread dot on nav
+        showMsgDot(true);
+      }
       if(chatWith&&(chatWith===m.sender_id||chatWith===m.receiver_id)){
+        const u=users.find(x=>x.id===chatWith);
+        if(u) openChat(u.id,u.username,u.avatar);
+      }
+    } else if(m.sender_id===me.id){
+      await loadMsgs();
+      if(chatWith===m.receiver_id){
         const u=users.find(x=>x.id===chatWith);
         if(u) openChat(u.id,u.username,u.avatar);
       }
@@ -995,12 +1040,28 @@ function setupRealtime(){
   }).subscribe();
 }
 
+let _msgDot = false;
+function showMsgDot(show){
+  _msgDot=show;
+  const ni=document.getElementById('ni-messages');
+  if(!ni) return;
+  let dot=document.getElementById('msg-dot');
+  if(show && !dot){
+    dot=document.createElement('span');
+    dot.id='msg-dot';
+    dot.style.cssText='position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:var(--pink);border-radius:50%;border:2px solid var(--bg);display:block;';
+    ni.querySelector('.ni-icon').style.position='relative';
+    ni.querySelector('.ni-icon').appendChild(dot);
+  } else if(!show && dot){
+    dot.remove();
+  }
+}
+
 // ── EDIT PROFILE ──
 function openEditProfile(){
   if(!myProf) return;
   const mg = myProf.gender||'';
   const html = '<div>'+
-    '<input class="inp" id="editUsername" value="'+(myProf.username||'')+'" placeholder="Takma ad">'+
     '<textarea class="inp" id="editBio" style="resize:none;height:76px;" placeholder="Bio...">'+(myProf.bio||'')+'</textarea>'+
     '<div style="font-size:13px;font-weight:800;margin-bottom:8px;">Yaşın: <span id="editAgeVal" style="color:var(--pink);">'+(myProf.age||18)+'</span></div>'+
     '<input type="range" class="age-slider" id="editAge" min="16" max="60" value="'+(myProf.age||18)+'" oninput="document.getElementById(\'editAgeVal\').textContent=this.value" style="width:100%;margin-bottom:14px;">'+
@@ -1022,12 +1083,10 @@ function selEditGender(g){
 }
 
 async function saveEditProfile(){
-  const username = document.getElementById('editUsername')?.value.trim();
   const bio = document.getElementById('editBio')?.value.trim();
   const age = parseInt(document.getElementById('editAge')?.value)||18;
   const gender = window._editGender;
-  if(!username){ toast('❌ Takma ad gir!'); return; }
-  const {error} = await db.from('profiles').update({username,bio,age,gender}).eq('id',me.id);
+  const {error} = await db.from('profiles').update({bio,age,gender}).eq('id',me.id);
   if(error){ toast('❌ '+error.message); return; }
   await loadMyProf();
   closeModal();

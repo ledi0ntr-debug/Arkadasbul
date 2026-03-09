@@ -381,6 +381,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="nav-item active" id="nav-home" onclick="showPage('home')"><div class="nav-icon">🏠</div><div class="nav-label" id="navHome">Keşfet</div></div>
     <div class="nav-item" id="nav-discover" onclick="showPage('discover')"><div class="nav-icon">🌍</div><div class="nav-label" id="navDiscover">Topluluk</div></div>
     <div class="nav-item" id="nav-messages" onclick="showPage('messages')"><div class="nav-icon">💬</div><div class="nav-label" id="navMessages">Mesajlar</div></div>
+    <div class="nav-item" id="nav-notifications" onclick="showPage('notifications')"><div class="nav-icon">🔔<span id="notifCount" style="display:none;position:absolute;top:-2px;right:-2px;width:14px;height:14px;background:var(--pink);border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;"></span></div><div class="nav-label">Bildirim</div></div>
     <div class="nav-item" id="nav-profile" onclick="showPage('profile')"><div class="nav-icon">👤</div><div class="nav-label" id="navProfile">Profil</div></div>
   </nav>
 </div>
@@ -767,7 +768,12 @@ async function showApp(){
   await loadDiscoverPosts();
   loadMsgLimit();
   updateDesktopUserInfo();
-  renderPage('home');
+  // render home for both layouts
+  const mob = document.getElementById('mobileContent');
+  const desk = document.getElementById('deskContent');
+  const html = getPageHTML('home');
+  if(mob) mob.innerHTML = html;
+  if(desk) desk.innerHTML = html;
   setupRealtimeMessages();
 }
 function updateDesktopUserInfo(){
@@ -790,23 +796,19 @@ function showPage(page){
     if(n) n.classList.toggle('active', p===page);
   });
   const content = document.getElementById('mobileContent');
-  if(content) content.innerHTML = getPageHTML(page);
-  if(page==='home') initHomePage();
+  if(content){ content.innerHTML = getPageHTML(page); }
   if(page==='discover') initDiscoverPage();
-  if(page==='messages') initMessagesPage();
 }
 function showDeskPage(page, el){
   currentPage = page;
   document.querySelectorAll('.desk-nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   const titles = {home:'Ana Sayfa',discover:'Topluluk',messages:'Mesajlar',notifications:'Bildirimler',profile:'Profilim',settings:'Ayarlar'};
-  const t = document.getElementById('deskPageTitle');
-  if(t) t.textContent = titles[page]||page;
+  const titleEl = document.getElementById('deskPageTitle');
+  if(titleEl) titleEl.textContent = titles[page]||page;
   const content = document.getElementById('deskContent');
-  if(content) content.innerHTML = getPageHTML(page);
-  if(page==='home') initHomePage();
+  if(content){ content.innerHTML = getPageHTML(page); }
   if(page==='discover') initDiscoverPage();
-  if(page==='messages') initMessagesPage();
 }
 function getPageHTML(page){
   if(page==='home') return renderHome();
@@ -872,13 +874,13 @@ function toggleLocationFilter(){
   renderPage(currentPage);
 }
 function renderPage(page){
+  currentPage = page;
+  const html = getPageHTML(page);
   const mob = document.getElementById('mobileContent');
   const desk = document.getElementById('deskContent');
-  const html = getPageHTML(page);
   if(mob && window.innerWidth < 768) mob.innerHTML = html;
-  if(desk && window.innerWidth >= 768) desk.innerHTML = html;
+  else if(desk) desk.innerHTML = html;
   if(page==='discover') initDiscoverPage();
-  if(page==='messages') initMessagesPage();
 }
 
 // ────────────────────────────────────────────

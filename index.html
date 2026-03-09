@@ -77,6 +77,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .lang-toggle{display:flex;gap:8px;margin-bottom:20px;}
 .lang-btn{flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
 .lang-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(6,182,212,0.1);}
+.gender-btn{flex:1;padding:10px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all 0.2s;}
+.gender-btn:hover{border-color:var(--purple);color:var(--text);}
+.gender-btn.selected{background:rgba(168,85,247,0.2);border-color:var(--purple);color:#C084FC;}
 
 /* ── MAIN APP ── */
 #appScreen{min-height:100vh;display:none;}
@@ -356,7 +359,21 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Avatar Seç</div>
     <div class="avatar-grid" id="avatarGrid"></div>
     <input class="inp" id="setupUsername" placeholder="Takma ad (örn: GizliKaplan)" style="margin-bottom:12px;">
-    <input class="inp" id="setupAge" type="number" placeholder="Yaşın" min="16" max="99" style="margin-bottom:12px;">
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:8px;">Cinsiyet</div>
+        <div style="display:flex;gap:8px;">
+          <div class="gender-btn" id="g-male" onclick="selectGender('male')">👨 Erkek</div>
+          <div class="gender-btn" id="g-female" onclick="selectGender('female')">👩 Kız</div>
+          <div class="gender-btn" id="g-other" onclick="selectGender('other')">🌈 Diğer</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">Yaşın: <span id="ageDisplay" style="color:var(--pink);">18</span></div>
+      <input type="range" id="setupAge" min="16" max="60" value="18" oninput="document.getElementById('ageDisplay').textContent=this.value" style="width:100%;accent-color:var(--pink);cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;"><span>16</span><span>60+</span></div>
+    </div>
     <textarea class="inp" id="setupBio" placeholder="Kendini kısaca tanıt..." style="resize:none;height:80px;margin-bottom:12px;"></textarea>
     <div style="font-size:13px;font-weight:800;margin-bottom:10px;">İlgi Alanları</div>
     <div class="interest-grid" id="interestGrid"></div>
@@ -450,6 +467,7 @@ let currentPage = 'home';
 let isDesktop = window.innerWidth >= 768;
 let selectedAvatar = null;
 let selectedInterests = [];
+let selectedGender = null;
 let discoverPosts = [];
 let follows = [];
 
@@ -695,6 +713,12 @@ function selectAvatar(id){
   document.querySelectorAll('.av-item').forEach(e=>e.classList.remove('selected'));
   document.getElementById('av-'+id)?.classList.add('selected');
 }
+function selectGender(g){
+  selectedGender = g;
+  document.querySelectorAll('.gender-btn').forEach(e=>e.classList.remove('selected'));
+  document.getElementById('g-'+g)?.classList.add('selected');
+}
+
 function toggleInterest(el, val){
   if(selectedInterests.includes(val)){
     selectedInterests = selectedInterests.filter(i=>i!==val);
@@ -716,6 +740,7 @@ async function saveProfile(){
     id: currentUser.id, email: currentUser.email||'',
     username, age: age||null, bio, avatar: selectedAvatar,
     interests: selectedInterests,
+    gender: selectedGender,
     lat: loc?.lat||null, lng: loc?.lng||null,
     city: loc?.city||null,
     is_anon: true, lang: currentLang,
@@ -757,8 +782,10 @@ async function loadNotifications(){
   if(dot) dot.style.display = notifications.length > 0 ? 'block' : 'none';
 }
 async function loadDiscoverPosts(){
-  const { data } = await db.from('posts').select('*, author:profiles!posts_author_id_fkey(username,avatar)').order('created_at',{ascending:false}).limit(30);
-  discoverPosts = data || [];
+  try {
+    const { data, error } = await db.from('posts').select('*, author:profiles!posts_author_id_fkey(username,avatar)').order('created_at',{ascending:false}).limit(30);
+    if(!error) discoverPosts = data || [];
+  } catch(e) { discoverPosts = []; }
 }
 
 // ────────────────────────────────────────────
@@ -938,7 +965,17 @@ async function postDiscover(){
     await loadDiscoverPosts();
   }
   inp.value = '';
-  renderPage(currentPage);
+  await loadDiscoverPosts();
+  const postsEl = document.getElementById('postsList');
+  if(postsEl){
+    const postsHTML = discoverPosts.length === 0
+      ? '<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">Henüz gönderi yok</div></div>'
+      : discoverPosts.map(p => {
+          const av = getAvatar(p.author?.avatar);
+          return '<div class="discover-post"><div class="disc-user"><div class="disc-av"><div style="font-size:24px;">'+av.emoji+'</div></div><div><div class="disc-username">🎭 '+(p.author?.username||'Anonim')+'</div><div class="disc-time">'+timeAgo(p.created_at)+'</div></div></div><div class="disc-content">'+p.content+'</div><div class="disc-actions"><div class="disc-action" onclick="likePost(''+p.id+'',this)">❤️ '+(p.likes||0)+'</div></div></div>';
+        }).join('');
+    postsEl.innerHTML = postsHTML;
+  }
   showToast('✅ Paylaşıldı!');
 }
 async function likePost(id, el){

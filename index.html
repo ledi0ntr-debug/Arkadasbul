@@ -979,7 +979,7 @@ function renderDiscoverPosts(){
   return discoverPosts.map(p => {
     const av = getAvatar(p.author?.avatar);
     return '<div class="discover-post">' +
-      '<div class="disc-user">' +
+      '<div class="disc-user" onclick="openUserProfile(' + JSON.stringify(p.author_id) + ')" style="cursor:pointer;">' +
         '<div class="disc-av"><div style="font-size:24px;">' + av.emoji + '</div></div>' +
         '<div><div class="disc-username">🎭 ' + (p.author?.username||'Anonim') + '</div>' +
         '<div class="disc-time">' + timeAgo(p.created_at) + '</div></div>' +

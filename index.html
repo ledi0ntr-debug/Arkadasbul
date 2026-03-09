@@ -3,1455 +3,1404 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>TanışBul 🌈</title>
+<title>TanışBul — Anonim Sosyal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --pink: #FF6B9D;
-    --purple: #A855F7;
-    --blue: #3B82F6;
-    --cyan: #06B6D4;
-    --yellow: #FBBF24;
-    --orange: #F97316;
-    --green: #10B981;
-    --red: #EF4444;
-    --bg: #0F0F1A;
-    --card: #1A1A2E;
-    --card2: #16213E;
-  }
+:root {
+  --pink: #FF6B9D; --purple: #A855F7; --cyan: #06B6D4;
+  --green: #10B981; --yellow: #FBBF24; --red: #EF4444;
+  --bg: #0A0A14; --surface: #0F0F1E; --card: #14142A;
+  --border: rgba(255,255,255,0.07); --text: #F0EFF8;
+  --muted: rgba(240,239,248,0.45);
+  --nav-h: 64px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(168,85,247,0.3);border-radius:2px;}
 
-  body {
-    font-family: 'Nunito', sans-serif;
-    background: var(--bg);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow-x: hidden;
-    color: white;
-  }
+/* ── WELCOME SCREEN ── */
+#welcomeScreen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;animation:welcomeFadeOut 0.5s ease 3s forwards;}
+@keyframes welcomeFadeOut{to{opacity:0;pointer-events:none;}}
+.welcome-logo{font-family:'Pacifico',cursive;font-size:48px;background:linear-gradient(135deg,var(--pink),var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:welcomePop 0.6s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes welcomePop{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+.welcome-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.particle{position:absolute;font-size:24px;animation:particleFly 3s ease-in-out infinite;}
+@keyframes particleFly{0%{transform:translateY(100vh) rotate(0deg);opacity:1;}100%{transform:translateY(-100px) rotate(360deg);opacity:0;}}
 
-  .bg-blob {
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.15;
-    animation: floatBlob 8s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .blob1 { width: 300px; height: 300px; background: var(--pink); top: -50px; left: -100px; }
-  .blob2 { width: 250px; height: 250px; background: var(--purple); bottom: -50px; right: -80px; animation-delay: 3s; }
-  .blob3 { width: 200px; height: 200px; background: var(--cyan); top: 50%; left: 50%; animation-delay: 1.5s; }
+/* ── AUTH ── */
+#authScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 30% 20%,rgba(168,85,247,0.12),transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(255,107,157,0.1),transparent 60%),var(--bg);}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:28px;padding:36px 32px;width:100%;max-width:420px;}
+.auth-logo{font-family:'Pacifico',cursive;font-size:32px;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;margin-bottom:8px;}
+.auth-sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:28px;}
+.auth-tabs{display:flex;gap:0;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:24px;}
+.auth-tab{flex:1;padding:10px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.auth-tab.active{background:linear-gradient(135deg,var(--pink),var(--purple));color:white;}
+.input-group{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+.inp{background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;width:100%;transition:border-color 0.2s;}
+.inp:focus{border-color:var(--purple);}
+.inp::placeholder{color:var(--muted);}
+.btn-main{width:100%;padding:14px;background:linear-gradient(135deg,var(--pink),var(--purple));border:none;border-radius:14px;color:white;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;box-shadow:0 6px 20px rgba(255,107,157,0.3);}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(255,107,157,0.4);}
+.btn-main:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--muted);font-size:12px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.btn-google{width:100%;padding:12px;background:white;border:1.5px solid #E5E7EB;border-radius:14px;color:#374151;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;}
+.btn-google:hover{background:#F9FAFB;transform:translateY(-1px);}
+.auth-err{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:12px;font-size:13px;color:#FF8080;display:none;margin-top:12px;}
 
-  @keyframes floatBlob {
-    0%, 100% { transform: translate(0,0) scale(1); }
-    50% { transform: translate(20px,-20px) scale(1.1); }
-  }
+/* ── RULES SCREEN ── */
+#rulesScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);}
+.rules-card{background:var(--surface);border:1px solid var(--border);border-radius:28px;padding:32px;width:100%;max-width:440px;}
+.rules-title{font-size:22px;font-weight:900;text-align:center;margin-bottom:6px;}
+.rules-sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:24px;}
+.rule-item{display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--bg);border-radius:14px;margin-bottom:10px;}
+.rule-icon{font-size:22px;flex-shrink:0;}
+.rule-text{font-size:13px;line-height:1.5;}
+.rule-text strong{font-size:14px;display:block;margin-bottom:2px;}
 
-  /* Phone */
-  .phone {
-    width: 390px;
-    min-height: 844px;
-    background: var(--bg);
-    border-radius: 50px;
-    border: 2px solid rgba(255,255,255,0.08);
-    overflow: hidden;
-    position: relative;
-    z-index: 1;
-    box-shadow: 0 0 60px rgba(168,85,247,0.2), 0 0 120px rgba(255,107,157,0.1);
-  }
+/* ── PROFILE SETUP ── */
+#setupScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:28px;padding:32px;width:100%;max-width:480px;}
+.setup-title{font-size:22px;font-weight:900;text-align:center;margin-bottom:4px;}
+.setup-sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:24px;}
+.avatar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.av-item{aspect-ratio:1;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;border:2.5px solid transparent;background:var(--bg);transition:all 0.2s;position:relative;overflow:hidden;}
+.av-item:hover{transform:scale(1.08);}
+.av-item.selected{border-color:var(--pink);background:rgba(255,107,157,0.1);}
+.av-item img{width:56px;height:56px;object-fit:contain;}
+.interest-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
+.int-tag{padding:8px 14px;border-radius:20px;border:1.5px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--bg);}
+.int-tag.selected{background:rgba(168,85,247,0.2);border-color:var(--purple);color:#C084FC;}
+.lang-toggle{display:flex;gap:8px;margin-bottom:20px;}
+.lang-btn{flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.lang-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(6,182,212,0.1);}
 
-  /* ── AUTH SCREEN ── */
-  .auth-screen {
-    min-height: 844px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 32px;
-    gap: 24px;
-  }
+/* ── MAIN APP ── */
+#appScreen{min-height:100vh;display:none;}
 
-  .auth-logo {
-    font-family: 'Pacifico', cursive;
-    font-size: 42px;
-    background: linear-gradient(135deg, var(--pink), var(--purple), var(--cyan));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-align: center;
-  }
-  .auth-subtitle {
-    color: rgba(255,255,255,0.5);
-    font-size: 15px;
-    text-align: center;
-    margin-top: -16px;
-  }
+/* MOBILE LAYOUT */
+.mobile-app{display:flex;flex-direction:column;min-height:100vh;}
+.app-header{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;background:rgba(10,10,20,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.header-logo{font-family:'Pacifico',cursive;font-size:22px;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.icon-btn{width:38px;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;position:relative;transition:all 0.2s;}
+.icon-btn:hover{border-color:rgba(168,85,247,0.4);}
+.notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--pink);border-radius:50%;border:2px solid var(--bg);}
+.app-content{flex:1;overflow-y:auto;padding-bottom:80px;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(10,10,20,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;align-items:center;z-index:100;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;transition:all 0.2s;}
+.nav-item .nav-icon{font-size:22px;transition:transform 0.2s;}
+.nav-item.active .nav-icon{transform:scale(1.15);}
+.nav-item .nav-label{font-size:10px;font-weight:700;color:var(--muted);transition:color 0.2s;}
+.nav-item.active .nav-label{color:var(--pink);}
 
-  .auth-tabs {
-    display: flex;
-    background: var(--card);
-    border-radius: 16px;
-    padding: 4px;
-    width: 100%;
-  }
-  .auth-tab {
-    flex: 1;
-    padding: 10px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    color: rgba(255,255,255,0.5);
-  }
-  .auth-tab.active {
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    color: white;
-    box-shadow: 0 4px 12px rgba(255,107,157,0.3);
-  }
+/* DESKTOP LAYOUT */
+.desktop-app{display:none;min-height:100vh;}
+.desk-sidebar{width:260px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;}
+.desk-logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+.desk-logo-text{font-family:'Pacifico',cursive;font-size:26px;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.desk-nav{padding:16px 12px;flex:1;display:flex;flex-direction:column;gap:4px;}
+.desk-nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;cursor:pointer;font-size:14px;font-weight:700;color:var(--muted);transition:all 0.2s;}
+.desk-nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.desk-nav-item.active{background:linear-gradient(135deg,rgba(255,107,157,0.15),rgba(168,85,247,0.15));color:var(--text);border:1px solid rgba(255,107,157,0.2);}
+.desk-nav-icon{font-size:20px;}
+.desk-main{margin-left:260px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.desk-topbar{padding:20px 32px;border-bottom:1px solid var(--border);background:rgba(15,15,30,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;}
+.desk-content{padding:28px 32px;}
+.desk-user-info{display:flex;align-items:center;gap:12px;padding:16px;border-top:1px solid var(--border);}
+.desk-user-av{width:44px;height:44px;border-radius:14px;overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center;}
+.desk-user-av img{width:100%;height:100%;object-fit:contain;}
 
-  .auth-form { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+/* ── LOCATION BAR ── */
+.location-bar{padding:12px 20px;display:flex;align-items:center;gap:10px;}
+.loc-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.25);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:800;color:var(--cyan);cursor:pointer;transition:all 0.2s;}
+.loc-badge:hover{background:rgba(6,182,212,0.2);}
+.loc-badge.active{background:rgba(6,182,212,0.25);border-color:var(--cyan);}
+.anon-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.25);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:800;color:#C084FC;}
 
-  .input-group { display: flex; flex-direction: column; gap: 6px; }
-  .input-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.7); }
-  .input-field {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 14px;
-    padding: 14px 16px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px;
-    color: white;
-    outline: none;
-    transition: border-color 0.3s;
-    width: 100%;
-  }
-  .input-field:focus { border-color: var(--purple); }
-  .input-field::placeholder { color: rgba(255,255,255,0.3); }
+/* ── CARDS ── */
+.person-card{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s;position:relative;}
+.person-card:hover{background:rgba(255,255,255,0.02);}
+.p-avatar{width:62px;height:62px;border-radius:20px;overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+.p-avatar img{width:100%;height:100%;object-fit:contain;}
+.status-dot{position:absolute;bottom:4px;right:4px;width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--bg);}
+.p-info{flex:1;min-width:0;}
+.p-name{font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px;}
+.p-bio{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.p-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.tag{padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;}
+.dist-tag{background:rgba(6,182,212,0.15);color:var(--cyan);}
+.int-tag-sm{background:rgba(168,85,247,0.15);color:#C084FC;}
+.p-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.add-btn{width:36px;height:36px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s;}
+.add-btn.add{background:linear-gradient(135deg,var(--pink),var(--purple));box-shadow:0 4px 12px rgba(255,107,157,0.3);}
+.add-btn.add:hover{transform:scale(1.1);}
+.add-btn.added{background:rgba(255,255,255,0.06);color:var(--muted);}
 
-  .btn-main {
-    padding: 16px;
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    border: none;
-    border-radius: 16px;
-    color: white;
-    font-family: 'Nunito', sans-serif;
-    font-size: 16px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 20px rgba(255,107,157,0.4);
-    width: 100%;
-  }
-  .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(255,107,157,0.5); }
-  .btn-main:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+/* ── MESSAGES ── */
+.msg-limit-bar{margin:12px 20px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.msg-limit-text{font-size:12px;font-weight:700;}
+.msg-limit-count{font-size:20px;font-weight:900;color:var(--pink);}
+.msg-limit-timer{font-size:11px;color:var(--muted);}
+.chat-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s;}
+.chat-item:hover{background:rgba(255,255,255,0.02);}
+.chat-av{width:52px;height:52px;border-radius:18px;overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-av img{width:100%;height:100%;object-fit:contain;}
+.chat-info{flex:1;min-width:0;}
+.chat-name{font-size:14px;font-weight:800;}
+.chat-last{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+.chat-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.chat-time{font-size:11px;color:var(--muted);}
+.unread-badge{background:var(--pink);color:white;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;}
 
-  .auth-error {
-    background: rgba(239,68,68,0.15);
-    border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 13px;
-    color: #FF8080;
-    text-align: center;
-    display: none;
-  }
-  .auth-success {
-    background: rgba(16,185,129,0.15);
-    border: 1px solid rgba(16,185,129,0.3);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 13px;
-    color: var(--green);
-    text-align: center;
-    display: none;
-  }
+/* ── CHAT VIEW ── */
+.chat-view{display:flex;flex-direction:column;height:calc(100vh - var(--nav-h));}
+.chat-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:rgba(10,10,20,0.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:10;}
+.chat-back{font-size:24px;cursor:pointer;line-height:1;}
+.chat-av-sm{width:44px;height:44px;border-radius:14px;overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center;}
+.chat-av-sm img{width:100%;height:100%;object-fit:contain;}
+.chat-user-name{font-size:16px;font-weight:800;}
+.chat-status{font-size:12px;color:var(--green);}
+.chat-messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;}
+.msg-bubble{max-width:72%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;word-break:break-word;}
+.msg-bubble.mine{background:linear-gradient(135deg,var(--pink),var(--purple));color:white;border-bottom-right-radius:4px;align-self:flex-end;}
+.msg-bubble.theirs{background:var(--card);border:1px solid var(--border);border-bottom-left-radius:4px;align-self:flex-start;}
+.msg-bubble img{max-width:200px;border-radius:12px;display:block;}
+.msg-time{font-size:10px;opacity:0.6;margin-top:4px;}
+.chat-input-bar{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;background:rgba(10,10,20,0.95);}
+.chat-inp{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:12px 16px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;}
+.chat-inp:focus{border-color:var(--purple);}
+.chat-inp::placeholder{color:var(--muted);}
+.send-btn{width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg,var(--pink),var(--purple));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s;flex-shrink:0;}
+.send-btn:hover{transform:scale(1.08);}
+.photo-btn{width:44px;height:44px;border-radius:16px;background:var(--card);border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s;}
+.photo-btn:hover{border-color:var(--cyan);}
 
-  /* ── PROFILE SETUP ── */
-  .profile-setup {
-    min-height: 844px;
-    display: flex;
-    flex-direction: column;
-    padding: 40px 32px;
-    gap: 20px;
-  }
-  .setup-title {
-    font-family: 'Pacifico', cursive;
-    font-size: 28px;
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .setup-sub { color: rgba(255,255,255,0.5); font-size: 14px; margin-top: -12px; }
+/* ── DISCOVER ── */
+.discover-input-wrap{padding:16px 20px;position:sticky;top:0;background:rgba(10,10,20,0.95);backdrop-filter:blur(20px);z-index:10;border-bottom:1px solid var(--border);}
+.discover-inp{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;}
+.discover-inp:focus{border-color:var(--pink);}
+.discover-inp::placeholder{color:var(--muted);}
+.discover-post{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;margin:0 16px 16px;}
+.disc-user{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.disc-av{width:40px;height:40px;border-radius:13px;overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.disc-av img{width:100%;height:100%;object-fit:contain;}
+.disc-username{font-size:14px;font-weight:800;}
+.disc-time{font-size:11px;color:var(--muted);}
+.disc-content{font-size:14px;line-height:1.6;margin-bottom:12px;}
+.disc-actions{display:flex;gap:16px;}
+.disc-action{font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:5px;transition:color 0.2s;}
+.disc-action:hover{color:var(--pink);}
+.disc-action.liked{color:var(--pink);}
 
-  .avatar-picker {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .avatar-opt {
-    width: 52px; height: 52px;
-    border-radius: 16px;
-    background: var(--card);
-    border: 2px solid transparent;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .avatar-opt.selected {
-    border-color: var(--pink);
-    background: rgba(255,107,157,0.15);
-    transform: scale(1.1);
-  }
+/* ── PROFILE ── */
+.profile-page{padding:0 0 20px;}
+.profile-banner{height:140px;background:linear-gradient(135deg,rgba(255,107,157,0.3),rgba(168,85,247,0.3));position:relative;}
+.profile-av-wrap{position:absolute;bottom:-36px;left:20px;width:80px;height:80px;border-radius:24px;overflow:hidden;background:var(--card);border:4px solid var(--bg);display:flex;align-items:center;justify-content:center;}
+.profile-av-wrap img{width:100%;height:100%;object-fit:contain;}
+.profile-info{padding:50px 20px 16px;}
+.profile-name{font-size:22px;font-weight:900;display:flex;align-items:center;gap:8px;}
+.profile-bio{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;}
+.profile-stats{display:flex;gap:24px;margin:16px 0;}
+.pstat{text-align:center;}
+.pstat-num{font-size:20px;font-weight:900;}
+.pstat-label{font-size:11px;color:var(--muted);font-weight:700;}
+.profile-btns{display:flex;gap:10px;margin-bottom:20px;}
+.btn-follow{flex:1;padding:12px;border-radius:14px;background:linear-gradient(135deg,var(--pink),var(--purple));border:none;color:white;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all 0.2s;}
+.btn-follow.following{background:var(--card);border:1.5px solid var(--border);color:var(--muted);}
+.btn-msg{padding:12px 20px;border-radius:14px;background:var(--card);border:1.5px solid var(--border);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all 0.2s;}
+.btn-report{padding:12px;border-radius:14px;background:rgba(239,68,68,0.1);border:1.5px solid rgba(239,68,68,0.2);color:#FF6060;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;}
 
-  .interest-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-  .interest-chip {
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 2px solid rgba(255,255,255,0.1);
-    background: var(--card);
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: rgba(255,255,255,0.6);
-  }
-  .interest-chip.selected {
-    border-color: var(--purple);
-    background: rgba(168,85,247,0.2);
-    color: white;
-  }
+/* ── NOTIFICATIONS ── */
+.notif-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s;}
+.notif-item:hover{background:rgba(255,255,255,0.02);}
+.notif-item.unread{background:rgba(168,85,247,0.05);}
+.notif-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.notif-text{flex:1;font-size:13px;line-height:1.5;}
+.notif-text strong{font-weight:800;}
+.notif-time{font-size:11px;color:var(--muted);}
 
-  /* ── MAIN APP ── */
-  .app-screen { min-height: 844px; display: flex; flex-direction: column; }
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding:20px;backdrop-filter:blur(8px);}
+.modal-overlay.center{align-items:center;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:28px 28px 0 0;width:100%;max-width:500px;padding:28px 24px;animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+.modal.center{border-radius:28px;animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+@keyframes popIn{from{transform:scale(0.8);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-title{font-size:18px;font-weight:900;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.modal-close{margin-left:auto;cursor:pointer;font-size:20px;color:var(--muted);}
 
-  .status-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 24px 8px;
-    font-size: 12px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.7);
-  }
+/* ── TOAST ── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px 20px;font-size:13px;font-weight:700;z-index:2000;opacity:0;transition:all 0.3s;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.3);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  .header {
-    padding: 8px 24px 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .logo {
-    font-family: 'Pacifico', cursive;
-    font-size: 26px;
-    background: linear-gradient(135deg, var(--pink), var(--purple), var(--cyan));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .header-right { display: flex; gap: 10px; align-items: center; }
-  .icon-btn {
-    width: 42px; height: 42px;
-    border-radius: 14px;
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.08);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s;
-  }
-  .icon-btn:hover { border-color: rgba(168,85,247,0.4); }
-  .notif-dot {
-    position: absolute; top: 8px; right: 8px;
-    width: 8px; height: 8px;
-    background: var(--pink); border-radius: 50%;
-    border: 2px solid var(--bg);
-  }
+/* ── AD BANNER ── */
+.ad-banner{margin:16px 20px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;opacity:0.8;}
+.ad-label{font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px;}
+.ad-text{font-size:12px;color:var(--muted);}
 
-  .search-wrap { padding: 0 24px 20px; }
-  .search-bar {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 18px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: rgba(255,255,255,0.4);
-    font-size: 14px;
-  }
+/* ── EMPTY STATE ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;color:var(--muted);}
+.empty-state .empty-icon{font-size:56px;}
+.empty-state .empty-text{font-size:15px;font-weight:700;text-align:center;}
+.empty-state .empty-sub{font-size:13px;text-align:center;line-height:1.6;}
 
-  .categories { padding: 0 24px 24px; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
-  .categories::-webkit-scrollbar { display: none; }
-  .cat-pill {
-    padding: 8px 18px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-  }
-  .cat-pill.active {
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    color: white;
-    box-shadow: 0 4px 15px rgba(255,107,157,0.4);
-  }
-  .cat-pill:not(.active) {
-    background: var(--card);
-    color: rgba(255,255,255,0.6);
-    border-color: rgba(255,255,255,0.08);
-  }
+/* ── DESKTOP SPECIFIC ── */
+@media(min-width:768px){
+  .mobile-app{display:none!important;}
+  .desktop-app{display:flex!important;}
+  .modal{border-radius:28px;}
+  .modal-overlay{align-items:center;}
+}
+@media(max-width:767px){
+  .desktop-app{display:none!important;}
+  .mobile-app{display:flex!important;}
+}
 
-  .section-title {
-    padding: 0 24px 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .section-title h2 { color: white; font-size: 18px; font-weight: 800; }
-  .section-title span { color: var(--purple); font-size: 13px; font-weight: 700; cursor: pointer; }
+/* ── SETTINGS PAGE ── */
+.settings-section{padding:20px;}
+.settings-title{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:8px;cursor:pointer;transition:background 0.2s;}
+.settings-item:hover{background:rgba(255,255,255,0.03);}
+.settings-item-left{display:flex;align-items:center;gap:12px;}
+.settings-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.settings-label{font-size:14px;font-weight:700;}
+.settings-sub{font-size:12px;color:var(--muted);}
+.toggle{width:48px;height:26px;background:var(--border);border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;}
+.toggle.on{background:linear-gradient(135deg,var(--pink),var(--purple));}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;background:white;border-radius:50%;top:3px;left:3px;transition:transform 0.2s;}
+.toggle.on::after{transform:translateX(22px);}
 
-  .featured-scroll {
-    padding: 0 24px 24px;
-    display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .featured-scroll::-webkit-scrollbar { display: none; }
+/* ── REPORT MODAL ── */
+.report-option{padding:14px 16px;background:var(--bg);border-radius:14px;margin-bottom:8px;cursor:pointer;font-size:14px;font-weight:700;transition:background 0.2s;display:flex;align-items:center;gap:10px;}
+.report-option:hover{background:rgba(239,68,68,0.1);color:var(--red);}
 
-  .feat-card {
-    min-width: 160px;
-    border-radius: 24px;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-  }
-  .feat-avatar-placeholder {
-    width: 160px;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 60px;
-  }
-  .feat-overlay {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.85));
-    padding: 40px 14px 14px;
-  }
-  .feat-name { color: white; font-size: 15px; font-weight: 800; }
-  .feat-info { color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 2px; }
-  .feat-badge {
-    position: absolute;
-    top: 12px; right: 12px;
-    padding: 4px 10px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 800;
-    color: white;
-  }
-  .online-dot {
-    position: absolute;
-    top: 12px; left: 12px;
-    width: 10px; height: 10px;
-    background: var(--green);
-    border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 0 8px var(--green);
-  }
-
-  .people-list { padding: 0 24px; display: flex; flex-direction: column; gap: 12px; }
-
-  .person-card {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 20px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-  .person-card:hover {
-    transform: translateX(4px);
-    border-color: rgba(168,85,247,0.3);
-  }
-  .person-avatar {
-    width: 54px; height: 54px;
-    border-radius: 18px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px;
-    flex-shrink: 0;
-    position: relative;
-  }
-  .person-avatar .status {
-    position: absolute; bottom: 2px; right: 2px;
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    border: 2px solid var(--card);
-  }
-  .status.online { background: var(--green); }
-
-  .person-info { flex: 1; }
-  .person-name { color: white; font-weight: 800; font-size: 15px; }
-  .person-bio { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 3px; }
-  .person-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  .tag {
-    padding: 3px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    color: white;
-  }
-
-  .connect-btn {
-    width: 38px; height: 38px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-  .connect-btn:hover { transform: scale(1.1); }
-  .connect-btn.add {
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    box-shadow: 0 4px 12px rgba(255,107,157,0.4);
-  }
-  .connect-btn.added {
-    background: var(--card2);
-    border: 2px solid var(--green);
-  }
-
-  /* Profile page */
-  .profile-page {
-    min-height: 844px;
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    gap: 20px;
-  }
-  .profile-header { text-align: center; padding: 20px 0; }
-  .profile-big-avatar {
-    width: 90px; height: 90px;
-    border-radius: 28px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 44px;
-    margin: 0 auto 14px;
-    background: linear-gradient(135deg, rgba(255,107,157,0.2), rgba(168,85,247,0.2));
-    border: 2px solid rgba(255,107,157,0.3);
-  }
-  .profile-name { font-size: 22px; font-weight: 800; }
-  .profile-email { color: rgba(255,255,255,0.4); font-size: 13px; margin-top: 4px; }
-
-  .profile-stats {
-    display: flex;
-    gap: 12px;
-  }
-  .pstat {
-    flex: 1;
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
-    padding: 14px;
-    text-align: center;
-  }
-  .pstat-val { font-size: 22px; font-weight: 800; }
-  .pstat-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; }
-
-  .profile-section { background: var(--card); border-radius: 20px; padding: 18px; }
-  .profile-section-title { font-size: 14px; font-weight: 800; color: rgba(255,255,255,0.7); margin-bottom: 12px; }
-
-  .logout-btn {
-    padding: 16px;
-    background: rgba(239,68,68,0.15);
-    border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 16px;
-    color: #FF8080;
-    font-family: 'Nunito', sans-serif;
-    font-size: 15px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
-    margin-top: 8px;
-  }
-  .logout-btn:hover { background: rgba(239,68,68,0.25); }
-
-  /* Bottom nav */
-  .bottom-nav {
-    margin-top: auto;
-    padding: 16px 24px 30px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    border-top: 1px solid rgba(255,255,255,0.06);
-  }
-  .nav-item {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 4px; cursor: pointer;
-  }
-  .nav-icon {
-    width: 50px; height: 50px;
-    border-radius: 18px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    transition: all 0.3s;
-  }
-  .nav-item.active .nav-icon {
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    box-shadow: 0 4px 15px rgba(255,107,157,0.4);
-  }
-  .nav-item:not(.active) .nav-icon { background: var(--card); }
-  .nav-label { font-size: 11px; font-weight: 700; }
-  .nav-item.active .nav-label { color: var(--pink); }
-  .nav-item:not(.active) .nav-label { color: rgba(255,255,255,0.4); }
-
-  /* Match popup */
-  .match-popup {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    background: linear-gradient(135deg, #1A1A2E, #16213E);
-    border: 2px solid rgba(255,107,157,0.4);
-    border-radius: 32px;
-    padding: 32px 28px;
-    text-align: center;
-    z-index: 100;
-    width: 300px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  .match-popup.show { transform: translate(-50%, -50%) scale(1); }
-  .match-overlay {
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 99;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.3s;
-    border-radius: 48px;
-  }
-  .match-overlay.show { opacity: 1; pointer-events: all; }
-  .match-emoji { font-size: 60px; }
-  .match-title {
-    font-family: 'Pacifico', cursive;
-    font-size: 28px;
-    background: linear-gradient(135deg, var(--pink), var(--yellow));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 10px 0 6px;
-  }
-  .match-sub { color: rgba(255,255,255,0.6); font-size: 14px; }
-  .match-actions { display: flex; gap: 12px; margin-top: 20px; }
-  .match-btn {
-    flex: 1; padding: 14px;
-    border-radius: 16px;
-    border: none;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 800;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .match-btn.primary {
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    color: white;
-  }
-  .match-btn.secondary {
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.7);
-  }
-
-  /* Loading */
-  .loading-screen {
-    min-height: 844px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-  }
-  .spinner {
-    width: 50px; height: 50px;
-    border: 3px solid rgba(255,255,255,0.1);
-    border-top-color: var(--pink);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .sparkle {
-    position: absolute;
-    pointer-events: none;
-    font-size: 20px;
-    animation: sparkleAnim 0.8s ease forwards;
-  }
-  @keyframes sparkleAnim {
-    0% { opacity: 1; transform: scale(0) rotate(0deg); }
-    50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
-    100% { opacity: 0; transform: scale(0.5) rotate(360deg) translateY(-40px); }
-  }
-
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .fade-in { animation: fadeInUp 0.4s ease forwards; }
-
-  /* Location badge */
-  .location-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(6,182,212,0.15);
-    border: 1px solid rgba(6,182,212,0.3);
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #06B6D4;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .location-badge:hover { background: rgba(6,182,212,0.25); }
-
-  .anon-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(168,85,247,0.15);
-    border: 1px solid rgba(168,85,247,0.3);
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #C084FC;
-  }
-
-  .distance-tag {
-    padding: 3px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    background: rgba(6,182,212,0.15);
-    color: #06B6D4;
-  }
-
+/* ── VOICE CHAT ── */
+.voice-modal{text-align:center;padding:20px 0;}
+.voice-av{width:100px;height:100px;border-radius:32px;overflow:hidden;background:var(--card);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;}
+.voice-av img{width:100%;height:100%;object-fit:contain;}
+.voice-waves{display:flex;align-items:center;justify-content:center;gap:6px;height:50px;margin:16px 0;}
+.wave-bar{width:6px;background:linear-gradient(180deg,var(--pink),var(--purple));border-radius:3px;animation:wave 0.8s ease-in-out infinite;}
+.wave-bar:nth-child(2){animation-delay:0.1s;}
+.wave-bar:nth-child(3){animation-delay:0.2s;}
+.wave-bar:nth-child(4){animation-delay:0.3s;}
+.wave-bar:nth-child(5){animation-delay:0.4s;}
+@keyframes wave{0%,100%{height:10px;}50%{height:40px;}}
+.voice-btns{display:flex;gap:12px;justify-content:center;margin-top:16px;}
+.voice-btn{width:60px;height:60px;border-radius:20px;border:none;cursor:pointer;font-size:24px;transition:all 0.2s;}
+.voice-btn.end{background:var(--red);color:white;}
+.voice-btn.mute{background:var(--card);border:1.5px solid var(--border);}
 </style>
 </head>
 <body>
-<div class="bg-blob blob1"></div>
-<div class="bg-blob blob2"></div>
-<div class="bg-blob blob3"></div>
 
-<div class="phone" id="app">
-  <!-- Loading -->
-  <div class="loading-screen" id="loadingScreen">
-    <div style="font-family:'Pacifico',cursive;font-size:36px;background:linear-gradient(135deg,#FF6B9D,#A855F7,#06B6D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">TanışBul</div>
-    <div class="spinner"></div>
+<!-- WELCOME -->
+<div id="welcomeScreen">
+  <div class="welcome-particles" id="particles"></div>
+  <div class="welcome-logo">TanışBul 🎭</div>
+  <div style="font-size:14px;color:var(--muted);">Anonim kal, yakınındakilerle tanış!</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-logo">TanışBul 🎭</div>
+    <div class="auth-sub" id="authSub">Anonim kal, yakınındakilerle tanış!</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Giriş Yap</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Kayıt Ol</button>
+    </div>
+    <div class="input-group" id="authForm">
+      <input class="inp" id="authEmail" type="email" placeholder="E-posta">
+      <input class="inp" id="authUsername" type="text" placeholder="Kullanıcı adı" style="display:none;">
+      <input class="inp" id="authPassword" type="password" placeholder="Şifre">
+    </div>
+    <button class="btn-main" id="authBtn" onclick="doAuth()">Giriş Yap</button>
+    <div class="auth-err" id="authErr"></div>
+    <div class="divider">veya</div>
+    <button class="btn-google" onclick="googleLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.162 6.656 3.58 9 3.58z"/></svg>
+      Google ile Giriş Yap
+    </button>
+    <div style="text-align:center;margin-top:16px;">
+      <div style="font-size:11px;color:var(--muted);">🌐 <span onclick="toggleLang()" style="cursor:pointer;text-decoration:underline;" id="langSwitch">English</span></div>
+    </div>
   </div>
 </div>
 
+<!-- RULES SCREEN -->
+<div id="rulesScreen" style="display:none;">
+  <div class="rules-card">
+    <div class="rules-title">📜 Topluluk Kuralları</div>
+    <div class="rules-sub" id="rulesSub">TanışBul'a hoş geldin! Lütfen aşağıdaki kurallara uy.</div>
+    <div class="rule-item"><div class="rule-icon">🚫</div><div class="rule-text"><strong>Hakaret Yasak</strong>Diğer kullanıcılara hakaret etmek yasaktır.</div></div>
+    <div class="rule-item"><div class="rule-icon">🔞</div><div class="rule-text"><strong>Cinsel İçerik Yasak</strong>Her türlü cinsel içerik paylaşımı yasaktır.</div></div>
+    <div class="rule-item"><div class="rule-icon">📵</div><div class="rule-text"><strong>Spam Yasak</strong>Tekrarlayan veya anlamsız mesajlar yasaktır.</div></div>
+    <div class="rule-item"><div class="rule-icon">🛡️</div><div class="rule-text"><strong>Taciz Yasak</strong>Kullanıcıları rahatsız eden davranışlar yasaktır.</div></div>
+    <div class="rule-item"><div class="rule-icon">🎭</div><div class="rule-text"><strong>Anonimliğe Saygı</strong>Başkalarının kimliğini açıklamak yasaktır.</div></div>
+    <button class="btn-main" style="margin-top:16px;" onclick="acceptRules()">Kabul Ediyorum ✓</button>
+  </div>
+</div>
+
+<!-- PROFILE SETUP -->
+<div id="setupScreen" style="display:none;">
+  <div class="setup-card">
+    <div class="setup-title">🎭 Profil Oluştur</div>
+    <div class="setup-sub">Anonim kimliğini seç!</div>
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Avatar Seç</div>
+    <div class="avatar-grid" id="avatarGrid"></div>
+    <input class="inp" id="setupUsername" placeholder="Takma ad (örn: GizliKaplan)" style="margin-bottom:12px;">
+    <input class="inp" id="setupAge" type="number" placeholder="Yaşın" min="16" max="99" style="margin-bottom:12px;">
+    <textarea class="inp" id="setupBio" placeholder="Kendini kısaca tanıt..." style="resize:none;height:80px;margin-bottom:12px;"></textarea>
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px;">İlgi Alanları</div>
+    <div class="interest-grid" id="interestGrid"></div>
+    <button class="btn-main" onclick="saveProfile()">Hadi Başlayalım! 🚀</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appScreen">
+
+<!-- MOBILE -->
+<div class="mobile-app">
+  <div class="app-header">
+    <div class="header-logo" id="mobileHeaderLogo">TanışBul</div>
+    <div class="header-right">
+      <div class="icon-btn" id="notifBtn" onclick="showNotifications()">🔔<div class="notif-dot" id="notifDot" style="display:none;"></div></div>
+      <div class="icon-btn" onclick="showPage('settings')">⚙️</div>
+    </div>
+  </div>
+  <div class="app-content" id="mobileContent"></div>
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="showPage('home')"><div class="nav-icon">🏠</div><div class="nav-label" id="navHome">Keşfet</div></div>
+    <div class="nav-item" id="nav-discover" onclick="showPage('discover')"><div class="nav-icon">🌍</div><div class="nav-label" id="navDiscover">Topluluk</div></div>
+    <div class="nav-item" id="nav-messages" onclick="showPage('messages')"><div class="nav-icon">💬</div><div class="nav-label" id="navMessages">Mesajlar</div></div>
+    <div class="nav-item" id="nav-profile" onclick="showPage('profile')"><div class="nav-icon">👤</div><div class="nav-label" id="navProfile">Profil</div></div>
+  </nav>
+</div>
+
+<!-- DESKTOP -->
+<div class="desktop-app">
+  <aside class="desk-sidebar">
+    <div class="desk-logo"><div class="desk-logo-text">TanışBul 🎭</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Anonim Sosyal Platform</div></div>
+    <nav class="desk-nav">
+      <div class="desk-nav-item active" id="dnav-home" onclick="showDeskPage('home',this)"><span class="desk-nav-icon">🏠</span> <span id="dnavHome">Ana Sayfa</span></div>
+      <div class="desk-nav-item" id="dnav-discover" onclick="showDeskPage('discover',this)"><span class="desk-nav-icon">🌍</span> <span id="dnavDiscover">Topluluk</span></div>
+      <div class="desk-nav-item" id="dnav-messages" onclick="showDeskPage('messages',this)"><span class="desk-nav-icon">💬</span> <span id="dnavMessages">Mesajlar</span></div>
+      <div class="desk-nav-item" id="dnav-notifications" onclick="showDeskPage('notifications',this)"><span class="desk-nav-icon">🔔</span> <span id="dnavNotifications">Bildirimler</span></div>
+      <div class="desk-nav-item" id="dnav-profile" onclick="showDeskPage('profile',this)"><span class="desk-nav-icon">👤</span> <span id="dnavProfile">Profilim</span></div>
+      <div class="desk-nav-item" id="dnav-settings" onclick="showDeskPage('settings',this)"><span class="desk-nav-icon">⚙️</span> <span id="dnavSettings">Ayarlar</span></div>
+    </nav>
+    <div class="desk-user-info">
+      <div class="desk-user-av" id="deskUserAv"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="deskUsername">...</div>
+        <div style="font-size:11px;color:var(--green);">● Çevrimiçi</div>
+      </div>
+      <div onclick="doLogout()" style="cursor:pointer;font-size:18px;" title="Çıkış">🚪</div>
+    </div>
+  </aside>
+  <main class="desk-main">
+    <div class="desk-topbar">
+      <div style="font-size:20px;font-weight:900;" id="deskPageTitle">Ana Sayfa</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="loc-badge" id="deskLocBadge" onclick="toggleLocationFilter()">📍 Konum yükleniyor...</div>
+        <div class="anon-badge">🎭 Anonim</div>
+      </div>
+    </div>
+    <div class="desk-content" id="deskContent" style="max-width:800px;"></div>
+  </main>
+</div>
+
+</div><!-- /appScreen -->
+
+<!-- MODAL CONTAINER -->
+<div id="modalContainer"></div>
+
 <script>
-// ── Supabase Init (for database only) ──
+// ────────────────────────────────────────────
+// CONFIG
+// ────────────────────────────────────────────
 const SUPABASE_URL = 'https://snbqilkkysxmzmjfsihf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_HJ2nnuGyTszm7q_2y40KDQ_GZrSUenq';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── Clerk Init ──
-const CLERK_KEY = 'pk_test_c2hpbmluZy1waGVhc2FudC0yMC5jbGVyay5hY2NvdW50cy5kZXYk';
-
+// ────────────────────────────────────────────
+// STATE
+// ────────────────────────────────────────────
 let currentUser = null;
-let currentProfile = null;
-let activeTab = 'home';
-let clerkInstance = null;
-
-const avatars = ['👩‍🎨','🧑‍💻','👩‍🎤','🧑‍🍳','👩‍🚀','🧑‍🎸','👩‍🔬','🧑‍🎓','👩‍💼','🧑‍🏋️'];
-const interests = ['🎮 Oyun','🎵 Müzik','📚 Kitap','✈️ Seyahat','🏃 Spor','🎨 Sanat','🍳 Yemek','📸 Fotoğraf','🎬 Film','💻 Teknoloji'];
-
+let myProfile = null;
 let realUsers = [];
 let myFriendships = [];
-let activeMessages = null; // currently open chat
-let myLocation = null; // {lat, lng, city}
+let allMessages = [];
+let myLocation = null;
+let locationFilter = false;
+let msgLimit = { count: 20, resetAt: null };
+let notifications = [];
+let currentLang = 'tr';
+let currentPage = 'home';
+let isDesktop = window.innerWidth >= 768;
+let selectedAvatar = null;
+let selectedInterests = [];
+let discoverPosts = [];
+let follows = [];
 
-// ── Location ──
-async function getLocation() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) { resolve(null); return; }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        // Reverse geocode with free API
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-          const data = await res.json();
-          const city = data.address.city || data.address.town || data.address.county || 'Bilinmiyor';
-          myLocation = { lat, lng, city };
-        } catch(e) {
-          myLocation = { lat, lng, city: 'Bilinmiyor' };
-        }
-        resolve(myLocation);
-      },
-      () => resolve(null),
-      { timeout: 5000 }
-    );
+// ────────────────────────────────────────────
+// TRANSLATIONS
+// ────────────────────────────────────────────
+const T = {
+  tr: {
+    tagline: 'Anonim kal, yakınındakilerle tanış!',
+    login: 'Giriş Yap', register: 'Kayıt Ol',
+    home: 'Keşfet', discover: 'Topluluk', messages: 'Mesajlar', profile: 'Profil',
+    dHome: 'Ana Sayfa', dDiscover: 'Topluluk', dMessages: 'Mesajlar',
+    dNotifications: 'Bildirimler', dProfile: 'Profilim', dSettings: 'Ayarlar',
+    msgLeft: 'mesaj hakkın kaldı', rulesTitle: 'Topluluk Kuralları',
+    rulesSub: 'TanışBul\'a hoş geldin! Lütfen aşağıdaki kurallara uy.',
+    follow: 'Takip Et', following: 'Takip Ediliyor',
+    report: 'Şikayet Et', send: 'Gönder',
+    langSwitch: 'English'
+  },
+  en: {
+    tagline: 'Stay anonymous, meet people nearby!',
+    login: 'Login', register: 'Register',
+    home: 'Explore', discover: 'Community', messages: 'Messages', profile: 'Profile',
+    dHome: 'Home', dDiscover: 'Community', dMessages: 'Messages',
+    dNotifications: 'Notifications', dProfile: 'My Profile', dSettings: 'Settings',
+    msgLeft: 'messages left', rulesTitle: 'Community Rules',
+    rulesSub: 'Welcome to TanışBul! Please follow the rules below.',
+    follow: 'Follow', following: 'Following',
+    report: 'Report', send: 'Send',
+    langSwitch: 'Türkçe'
+  }
+};
+function t(k){ return T[currentLang][k] || T.tr[k] || k; }
+
+function toggleLang(){
+  currentLang = currentLang === 'tr' ? 'en' : 'tr';
+  applyLang();
+}
+function applyLang(){
+  const el = id => document.getElementById(id);
+  const set = (id, key) => { const e = el(id); if(e) e.textContent = t(key); };
+  set('authSub', 'tagline');
+  set('tabLogin', 'login'); set('tabRegister', 'register');
+  set('rulesSub', 'rulesSub');
+  set('navHome', 'home'); set('navDiscover', 'discover');
+  set('navMessages', 'messages'); set('navProfile', 'profile');
+  set('dnavHome', 'dHome'); set('dnavDiscover', 'dDiscover');
+  set('dnavMessages', 'dMessages'); set('dnavNotifications', 'dNotifications');
+  set('dnavProfile', 'dProfile'); set('dnavSettings', 'dSettings');
+  set('langSwitch', 'langSwitch');
+}
+
+// ────────────────────────────────────────────
+// ANIME AVATARS
+// ────────────────────────────────────────────
+const AVATARS = [
+  { id: 'wolf', emoji: '🐺', name: 'Gizemli Kurt', color: '#6366F1' },
+  { id: 'fox', emoji: '🦊', name: 'Kurnaz Tilki', color: '#F97316' },
+  { id: 'cat', emoji: '🐱', name: 'Kaos Kedisi', color: '#A855F7' },
+  { id: 'rabbit', emoji: '🐰', name: 'Hızlı Tavşan', color: '#10B981' },
+  { id: 'dragon', emoji: '🐉', name: 'Ejder Ruhu', color: '#EF4444' },
+  { id: 'panda', emoji: '🐼', name: 'Sakin Panda', color: '#06B6D4' },
+  { id: 'owl', emoji: '🦉', name: 'Bilge Baykuş', color: '#FBBF24' },
+  { id: 'tiger', emoji: '🐯', name: 'Asil Kaplan', color: '#F59E0B' },
+  { id: 'penguin', emoji: '🐧', name: 'Cool Penguen', color: '#3B82F6' },
+  { id: 'unicorn', emoji: '🦄', name: 'Mistik Unicorn', color: '#EC4899' },
+];
+
+function getAvatar(id){
+  return AVATARS.find(a => a.id === id) || AVATARS[0];
+}
+
+function avatarHTML(id, size=40){
+  const av = getAvatar(id);
+  return `<div style="width:${size}px;height:${size}px;border-radius:${size*0.3}px;background:linear-gradient(135deg,${av.color}30,${av.color}60);display:flex;align-items:center;justify-content:center;font-size:${size*0.55}px;">${av.emoji}</div>`;
+}
+
+// ────────────────────────────────────────────
+// INTERESTS
+// ────────────────────────────────────────────
+const INTERESTS = ['🎮 Oyun','🎵 Müzik','📚 Kitap','✈️ Seyahat','⚽ Spor','🎨 Sanat','🍕 Yemek','📸 Fotoğraf','🎬 Film','💻 Teknoloji','🌿 Doğa','🎭 Tiyatro'];
+
+// ────────────────────────────────────────────
+// BAD WORDS FILTER
+// ────────────────────────────────────────────
+const BAD_WORDS = ['küfür1','küfür2','amk','oç','göt','sik','orospu','piç','ibne','salak'];
+function filterBadWords(text){
+  let filtered = text;
+  BAD_WORDS.forEach(w => {
+    const re = new RegExp(w, 'gi');
+    filtered = filtered.replace(re, '***');
+  });
+  return filtered;
+}
+
+// ────────────────────────────────────────────
+// WELCOME PARTICLES
+// ────────────────────────────────────────────
+function createParticles(){
+  const container = document.getElementById('particles');
+  const emojis = ['🎭','⭐','💫','✨','🌟','💜','💗','🎪'];
+  for(let i=0;i<12;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    p.style.left = Math.random()*100+'%';
+    p.style.animationDelay = Math.random()*2+'s';
+    p.style.animationDuration = (2+Math.random()*2)+'s';
+    container.appendChild(p);
+  }
+  setTimeout(()=>{ const ws=document.getElementById('welcomeScreen'); if(ws) ws.style.display='none'; }, 3500);
+}
+
+// ────────────────────────────────────────────
+// INIT
+// ────────────────────────────────────────────
+async function init(){
+  createParticles();
+  setTimeout(async () => {
+    const { data: { session } } = await db.auth.getSession();
+    if(session){
+      currentUser = session.user;
+      await loadMyProfile();
+      if(!myProfile){ showSetup(); }
+      else { showApp(); }
+    } else {
+      show('authScreen');
+    }
+  }, 3600);
+}
+
+// ────────────────────────────────────────────
+// SHOW/HIDE
+// ────────────────────────────────────────────
+function show(id){
+  ['authScreen','rulesScreen','setupScreen','appScreen'].forEach(s=>{
+    const e = document.getElementById(s);
+    if(e) e.style.display = s===id ? (id==='appScreen'?'block':'flex') : 'none';
   });
 }
-
-function calcDistance(lat1, lng1, lat2, lng2) {
-  if (!lat1 || !lat2) return null;
-  const R = 6371;
-  const dLat = (lat2-lat1) * Math.PI/180;
-  const dLng = (lat2-lng1) * Math.PI/180;
-  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
-    Math.sin(dLng/2)*Math.sin(dLng/2);
-  const c = 2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-  const d = R*c;
-  if (d < 1) return Math.round(d*1000) + ' m';
-  return Math.round(d) + ' km';
+function showToast(msg, duration=2500){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
 }
 
-// ── Init ──
-async function init() {
-  // Check saved session first
-  const saved = localStorage.getItem('ab_user');
-  if (saved) {
-    try {
-      currentUser = JSON.parse(saved);
-      await loadProfile();
-      return;
-    } catch(e) {
-      localStorage.removeItem('ab_user');
-    }
-  }
+// ────────────────────────────────────────────
+// AUTH
+// ────────────────────────────────────────────
+let authMode = 'login';
+function switchTab(mode){
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode==='login');
+  document.getElementById('tabRegister').classList.toggle('active', mode==='register');
+  document.getElementById('authUsername').style.display = mode==='register' ? 'block' : 'none';
+  document.getElementById('authBtn').textContent = mode==='login' ? t('login') : t('register');
+}
+
+async function doAuth(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const username = document.getElementById('authUsername').value.trim();
+  const btn = document.getElementById('authBtn');
+  const errEl = document.getElementById('authErr');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = '...';
 
   try {
-    clerkInstance = new Clerk(CLERK_KEY);
-    await clerkInstance.load();
-    if (clerkInstance.user) {
-      currentUser = { 
-        id: clerkInstance.user.id, 
-        email: clerkInstance.user.primaryEmailAddress?.emailAddress || clerkInstance.user.id
-      };
-      await loadProfile();
+    let result;
+    if(authMode === 'register'){
+      if(!email||!password||!username){ throw new Error('Tüm alanları doldur!'); }
+      if(password.length < 6){ throw new Error('Şifre en az 6 karakter olmalı!'); }
+      result = await db.auth.signUp({ email, password, options:{ data:{ username } } });
+      if(result.error) throw result.error;
+      currentUser = result.data.user;
+      if(currentUser){ showRules(); return; }
+      showToast('✉️ E-postanı kontrol et!');
     } else {
-      showAuthFallback();
+      result = await db.auth.signInWithPassword({ email, password });
+      if(result.error) throw result.error;
+      currentUser = result.data.user;
+      await loadMyProfile();
+      if(!myProfile) showRules();
+      else showApp();
     }
-  } catch(e) {
-    console.error('Clerk error:', e);
-    showAuthFallback();
+  } catch(e){
+    errEl.textContent = '❌ ' + (e.message || 'Bir hata oluştu');
+    errEl.style.display = 'block';
   }
+  btn.disabled = false;
+  btn.textContent = authMode==='login' ? t('login') : t('register');
 }
 
-function showAuthFallback() {
-  // Simple username/password fallback
-  document.getElementById('app').innerHTML = `
-    <div class="auth-screen fade-in">
-      <div class="auth-logo">TanışBul</div>
-      <div class="auth-subtitle">Yeni arkadaşlar keşfet 🌈</div>
-      <div class="auth-form" style="margin-top:20px;">
-        <div class="input-group">
-          <div class="input-label">Kullanıcı Adı</div>
-          <input class="input-field" id="unameInput" type="text" placeholder="kullanici_adi">
-        </div>
-        <div class="auth-error" id="authError"></div>
-        <button class="btn-main" onclick="quickLogin()">Giriş Yap / Kayıt Ol 🚀</button>
-      </div>
-      <div style="color:rgba(255,255,255,0.3);font-size:12px;text-align:center;margin-top:16px;">Şifre gerektirmez — sadece kullanıcı adınla gir!</div>
+async function googleLogin(){
+  const { error } = await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+  if(error) showToast('❌ Google girişi başarısız');
+}
+
+async function doLogout(){
+  await db.auth.signOut();
+  currentUser = null; myProfile = null;
+  show('authScreen');
+  showToast('👋 Görüşürüz!');
+}
+
+// ────────────────────────────────────────────
+// RULES
+// ────────────────────────────────────────────
+function showRules(){
+  show('rulesScreen');
+}
+function acceptRules(){
+  show('setupScreen');
+  renderSetup();
+}
+
+// ────────────────────────────────────────────
+// PROFILE SETUP
+// ────────────────────────────────────────────
+function renderSetup(){
+  // Avatars
+  const grid = document.getElementById('avatarGrid');
+  grid.innerHTML = AVATARS.map(av => `
+    <div class="av-item" id="av-${av.id}" onclick="selectAvatar('${av.id}')">
+      <div style="font-size:32px;">${av.emoji}</div>
     </div>
-  `;
+  `).join('');
+  // Interests
+  const igrid = document.getElementById('interestGrid');
+  igrid.innerHTML = INTERESTS.map(i => `
+    <div class="int-tag" onclick="toggleInterest(this,'${i}')">${i}</div>
+  `).join('');
 }
-
-async function quickLogin() {
-  const uname = document.getElementById('unameInput').value.trim();
-  if (!uname || uname.length < 3) {
-    document.getElementById('authError').textContent = '❌ En az 3 karakter gir!';
-    document.getElementById('authError').style.display = 'block';
-    return;
-  }
-
-  // Check if user exists
-  let { data: profile } = await db.from('profiles').select('*').eq('username', uname).single();
-  
-  if (!profile) {
-    // Create new profile with username as ID
-    const fakeId = 'user_' + uname + '_' + Date.now();
-    const { error } = await db.from('profiles').insert({
-      id: fakeId,
-      email: uname + '@arkadas.local',
-      username: uname,
-      created_at: new Date().toISOString()
-    });
-    if (error) {
-      document.getElementById('authError').textContent = '❌ ' + error.message;
-      document.getElementById('authError').style.display = 'block';
-      return;
-    }
-    profile = { id: fakeId, username: uname };
-  }
-
-  currentUser = { id: profile.id, email: profile.email };
-  currentProfile = profile;
-  
-  // Save to localStorage for session
-  localStorage.setItem('ab_user', JSON.stringify({ id: profile.id, email: profile.email }));
-  
-  if (!profile.city) {
-    showProfileSetup();
-  } else {
-    await loadUsers();
-    showApp();
-  }
+function selectAvatar(id){
+  selectedAvatar = id;
+  document.querySelectorAll('.av-item').forEach(e=>e.classList.remove('selected'));
+  document.getElementById('av-'+id)?.classList.add('selected');
 }
-
-async function loadProfile() {
-  const { data } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
-  currentProfile = data;
-  if (!currentProfile || !currentProfile.username) {
-    showProfileSetup();
-  } else {
-    await loadUsers();
-    showApp();
-  }
-}
-
-async function checkSavedSession() {
-  const saved = localStorage.getItem('ab_user');
-  if (saved) {
-    const user = JSON.parse(saved);
-    currentUser = user;
-    await loadProfile();
-    return true;
-  }
-  return false;
-}
-
-async function loadUsers() {
-  // Also update my location
-  const loc = await getLocation();
-  if (loc) {
-    myLocation = loc;
-    await db.from('profiles').update({ lat: loc.lat, lng: loc.lng, city: loc.city }).eq('id', currentUser.id);
-  }
-  
-  const { data: users } = await db.from('profiles').select('*').neq('id', currentUser.id);
-  realUsers = users || [];
-  const { data: friendships } = await db.from('friendships').select('*')
-    .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
-  myFriendships = friendships || [];
-}
-
-function isFriend(userId) {
-  return myFriendships.some(f =>
-    (f.sender_id === userId || f.receiver_id === userId) && f.status === 'accepted'
-  );
-}
-
-function isPending(userId) {
-  return myFriendships.some(f =>
-    f.sender_id === currentUser.id && f.receiver_id === userId && f.status === 'pending'
-  );
-}
-
-// ── AUTH ──
-function showAuth() {
-  document.getElementById('app').innerHTML = `
-    <div class="auth-screen fade-in">
-      <div class="auth-logo">TanışBul</div>
-      <div class="auth-subtitle">Yeni arkadaşlar keşfet 🌈</div>
-      <div class="auth-tabs">
-        <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Giriş Yap</div>
-        <div class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Kayıt Ol</div>
-      </div>
-      <div class="auth-form">
-        <div class="input-group" id="nameGroup" style="display:none;">
-          <div class="input-label">Ad Soyad</div>
-          <input class="input-field" id="nameInput" type="text" placeholder="Adın ve soyadın">
-        </div>
-        <div class="input-group">
-          <div class="input-label">E-posta</div>
-          <input class="input-field" id="emailInput" type="email" placeholder="ornek@email.com">
-        </div>
-        <div class="input-group">
-          <div class="input-label">Şifre</div>
-          <input class="input-field" id="passInput" type="password" placeholder="••••••••">
-        </div>
-        <div class="auth-error" id="authError"></div>
-        <div class="auth-success" id="authSuccess"></div>
-        <button class="btn-main" id="authBtn" onclick="handleAuth()">Giriş Yap</button>
-      </div>
-    </div>
-  `;
-}
-
-let authMode = 'login';
-function switchAuthTab(mode) {
-  authMode = mode;
-  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
-  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
-  document.getElementById('nameGroup').style.display = mode === 'register' ? 'flex' : 'none';
-  document.getElementById('authBtn').textContent = mode === 'login' ? 'Giriş Yap' : 'Kayıt Ol';
-  document.getElementById('authError').style.display = 'none';
-  document.getElementById('authSuccess').style.display = 'none';
-}
-
-async function handleAuth() {
-  const email = document.getElementById('emailInput').value.trim();
-  const pass = document.getElementById('passInput').value;
-  const btn = document.getElementById('authBtn');
-  const errEl = document.getElementById('authError');
-  const sucEl = document.getElementById('authSuccess');
-
-  if (!email || !pass) { showError('Lütfen tüm alanları doldur!'); return; }
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Bekle...';
-  errEl.style.display = 'none';
-  sucEl.style.display = 'none';
-
-  if (authMode === 'login') {
-    const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
-    if (error) { showError(getErrorMsg(error)); btn.disabled = false; btn.textContent = 'Giriş Yap'; return; }
-    currentUser = data.user;
-    await loadProfile();
-  } else {
-    const { data, error } = await db.auth.signUp({ email, password: pass });
-    if (error) { showError(getErrorMsg(error)); btn.disabled = false; btn.textContent = 'Kayıt Ol'; return; }
-    sucEl.textContent = '✅ Kayıt başarılı! E-postanı onaylaman gerekebilir.';
-    sucEl.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Kayıt Ol';
-    if (data.user) { currentUser = data.user; await loadProfile(); }
-  }
-}
-
-function showError(msg) {
-  const el = document.getElementById('authError');
-  el.textContent = '❌ ' + msg;
-  el.style.display = 'block';
-}
-
-function getErrorMsg(error) {
-  if (error.message.includes('Invalid login')) return 'E-posta veya şifre hatalı!';
-  if (error.message.includes('already registered')) return 'Bu e-posta zaten kayıtlı!';
-  if (error.message.includes('password')) return 'Şifre en az 6 karakter olmalı!';
-  return error.message;
-}
-
-// ── PROFILE SETUP ──
-let selectedAvatar = avatars[0];
-let selectedInterests = [];
-
-function showProfileSetup() {
-  document.getElementById('app').innerHTML = `
-    <div class="profile-setup fade-in">
-      <div class="setup-title">Profili Oluştur 🎭</div>
-      <div class="setup-sub">Anonim kal, yakınındakilerle tanış!</div>
-      <div style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);border-radius:14px;padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.7);">
-        🎭 <strong style="color:#C084FC;">Anonim mod aktif</strong> — Gerçek ismin ve fotoğrafın gizli kalır. Sadece takma adın ve ilgi alanların görünür!
-      </div>
-
-      <div class="input-group">
-        <div class="input-label">Kullanıcı Adı</div>
-        <input class="input-field" id="usernameInput" type="text" placeholder="kullanici_adi">
-      </div>
-
-      <div class="input-group">
-        <div class="input-label">Şehir</div>
-        <input class="input-field" id="cityInput" type="text" placeholder="İstanbul, Ankara...">
-      </div>
-
-      <div class="input-group">
-        <div class="input-label">Yaş</div>
-        <input class="input-field" id="ageInput" type="number" placeholder="22" min="16" max="99">
-      </div>
-
-      <div class="input-group">
-        <div class="input-label">Kısa Bio</div>
-        <input class="input-field" id="bioInput" type="text" placeholder="Kendini kısaca tanıt...">
-      </div>
-
-      <div class="input-group">
-        <div class="input-label">Avatar Seç</div>
-        <div class="avatar-picker" id="avatarPicker">
-          ${avatars.map((a,i) => `<div class="avatar-opt ${i===0?'selected':''}" onclick="selectAvatar('${a}',this)">${a}</div>`).join('')}
-        </div>
-      </div>
-
-      <div class="input-group">
-        <div class="input-label">İlgi Alanları (en az 2 seç)</div>
-        <div class="interest-grid" id="interestGrid">
-          ${interests.map(i => `<div class="interest-chip" onclick="toggleInterest('${i}',this)">${i}</div>`).join('')}
-        </div>
-      </div>
-
-      <div class="auth-error" id="setupError"></div>
-      <button class="btn-main" onclick="saveProfile()">Profili Kaydet 🚀</button>
-    </div>
-  `;
-}
-
-function selectAvatar(emoji, el) {
-  selectedAvatar = emoji;
-  document.querySelectorAll('.avatar-opt').forEach(e => e.classList.remove('selected'));
-  el.classList.add('selected');
-}
-
-function toggleInterest(interest, el) {
-  if (el.classList.contains('selected')) {
-    selectedInterests = selectedInterests.filter(i => i !== interest);
+function toggleInterest(el, val){
+  if(selectedInterests.includes(val)){
+    selectedInterests = selectedInterests.filter(i=>i!==val);
     el.classList.remove('selected');
   } else {
-    selectedInterests.push(interest);
+    if(selectedInterests.length>=5){ showToast('En fazla 5 ilgi alanı!'); return; }
+    selectedInterests.push(val);
     el.classList.add('selected');
   }
 }
-
-async function saveProfile() {
-  const username = document.getElementById('usernameInput').value.trim();
-  const city = document.getElementById('cityInput').value.trim();
-  const age = document.getElementById('ageInput').value;
-  const bio = document.getElementById('bioInput').value.trim();
-
-  if (!username || !city || !age) {
-    document.getElementById('setupError').textContent = '❌ Lütfen tüm alanları doldur!';
-    document.getElementById('setupError').style.display = 'block';
-    return;
-  }
-  if (selectedInterests.length < 2) {
-    document.getElementById('setupError').textContent = '❌ En az 2 ilgi alanı seç!';
-    document.getElementById('setupError').style.display = 'block';
-    return;
-  }
-
-  // Get location
+async function saveProfile(){
+  const username = document.getElementById('setupUsername').value.trim();
+  const age = parseInt(document.getElementById('setupAge').value);
+  const bio = document.getElementById('setupBio').value.trim();
+  if(!username){ showToast('❌ Takma ad gir!'); return; }
+  if(!selectedAvatar){ showToast('❌ Avatar seç!'); return; }
   const loc = await getLocation();
-  
   const { error } = await db.from('profiles').upsert({
-    id: currentUser.id,
-    email: currentUser.email || '',
-    username, city: loc ? loc.city : city, age: parseInt(age), bio,
-    avatar: selectedAvatar,
+    id: currentUser.id, email: currentUser.email||'',
+    username, age: age||null, bio, avatar: selectedAvatar,
     interests: selectedInterests,
-    lat: loc ? loc.lat : null,
-    lng: loc ? loc.lng : null,
-    is_anon: true,
+    lat: loc?.lat||null, lng: loc?.lng||null,
+    city: loc?.city||null,
+    is_anon: true, lang: currentLang,
     created_at: new Date().toISOString()
   });
-
-  if (error) {
-    document.getElementById('setupError').textContent = '❌ Hata: ' + error.message;
-    document.getElementById('setupError').style.display = 'block';
-    return;
-  }
-
-  currentProfile = { username, city, age, bio, avatar: selectedAvatar, interests: selectedInterests };
+  if(error){ showToast('❌ Hata: '+error.message); return; }
+  await loadMyProfile();
   showApp();
+  showToast('🎉 Hoş geldin, '+username+'!');
 }
 
-// ── MAIN APP ──
-function showApp() {
-  activeTab = 'home';
-  renderApp();
+// ────────────────────────────────────────────
+// LOAD DATA
+// ────────────────────────────────────────────
+async function loadMyProfile(){
+  if(!currentUser) return;
+  const { data } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+  myProfile = data;
+}
+async function loadUsers(){
+  const loc = await getLocation();
+  if(loc){ myLocation = loc; await db.from('profiles').update({lat:loc.lat,lng:loc.lng,city:loc.city}).eq('id',currentUser.id); }
+  const { data } = await db.from('profiles').select('*').neq('id', currentUser.id);
+  realUsers = data || [];
+  const { data: fs } = await db.from('friendships').select('*').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+  myFriendships = fs || [];
+  const { data: fls } = await db.from('follows').select('*').eq('follower_id', currentUser.id).catch(()=>({data:[]}));
+  follows = fls || [];
+}
+async function loadMessages(){
+  const { data } = await db.from('messages').select('*').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`).order('created_at',{ascending:false});
+  allMessages = data || [];
+}
+async function loadNotifications(){
+  // friend requests as notifications
+  const { data } = await db.from('friendships').select('*, sender:profiles!friendships_sender_id_fkey(username,avatar)').eq('receiver_id',currentUser.id).eq('status','pending').catch(()=>({data:[]}));
+  notifications = data || [];
+  const dot = document.getElementById('notifDot');
+  if(dot) dot.style.display = notifications.length > 0 ? 'block' : 'none';
+}
+async function loadDiscoverPosts(){
+  const { data } = await db.from('posts').select('*, author:profiles!posts_author_id_fkey(username,avatar)').order('created_at',{ascending:false}).limit(30).catch(()=>({data:[]}));
+  discoverPosts = data || [];
 }
 
-function renderApp() {
-  if (activeTab === 'home') renderHome();
-  else if (activeTab === 'profile') renderProfile();
+// ────────────────────────────────────────────
+// APP
+// ────────────────────────────────────────────
+async function showApp(){
+  show('appScreen');
+  await loadUsers();
+  await loadMessages();
+  await loadNotifications();
+  await loadDiscoverPosts();
+  loadMsgLimit();
+  updateDesktopUserInfo();
+  renderPage('home');
+  setupRealtimeMessages();
+}
+function updateDesktopUserInfo(){
+  if(!myProfile) return;
+  const av = document.getElementById('deskUserAv');
+  const un = document.getElementById('deskUsername');
+  if(av) av.innerHTML = avatarHTML(myProfile.avatar, 44);
+  if(un) un.textContent = myProfile.username;
+  const loc = document.getElementById('deskLocBadge');
+  if(loc) loc.textContent = '📍 ' + (myLocation?.city || 'Konum al...');
 }
 
-function renderHome() {
-  const now = new Date();
-  const h = now.getHours();
-  const m = String(now.getMinutes()).padStart(2,'0');
+// ────────────────────────────────────────────
+// PAGES
+// ────────────────────────────────────────────
+function showPage(page){
+  currentPage = page;
+  ['home','discover','messages','profile','notifications','settings'].forEach(p=>{
+    const n = document.getElementById('nav-'+p);
+    if(n) n.classList.toggle('active', p===page);
+  });
+  const content = document.getElementById('mobileContent');
+  if(content) content.innerHTML = getPageHTML(page);
+  if(page==='home') initHomePage();
+  if(page==='discover') initDiscoverPage();
+  if(page==='messages') initMessagesPage();
+}
+function showDeskPage(page, el){
+  currentPage = page;
+  document.querySelectorAll('.desk-nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const titles = {home:'Ana Sayfa',discover:'Topluluk',messages:'Mesajlar',notifications:'Bildirimler',profile:'Profilim',settings:'Ayarlar'};
+  const t = document.getElementById('deskPageTitle');
+  if(t) t.textContent = titles[page]||page;
+  const content = document.getElementById('deskContent');
+  if(content) content.innerHTML = getPageHTML(page);
+  if(page==='home') initHomePage();
+  if(page==='discover') initDiscoverPage();
+  if(page==='messages') initMessagesPage();
+}
+function getPageHTML(page){
+  if(page==='home') return renderHome();
+  if(page==='discover') return renderDiscover();
+  if(page==='messages') return renderMessages();
+  if(page==='profile') return renderMyProfile();
+  if(page==='notifications') return renderNotifications();
+  if(page==='settings') return renderSettings();
+  return '';
+}
 
-  const usersHTML = realUsers.length === 0
-    ? `<div style="padding:20px 24px;color:rgba(255,255,255,0.4);font-size:14px;text-align:center;">Henüz başka kullanıcı yok 🌱<br><small>Arkadaşlarını davet et!</small></div>`
-    : realUsers.map(u => {
-        const friend = isFriend(u.id);
-        const pending = isPending(u.id);
-        const btnHTML = friend
-          ? `<button class="connect-btn added" disabled>✅</button>`
-          : pending
-          ? `<button class="connect-btn added" disabled>⏳</button>`
-          : `<button class="connect-btn add" onclick="sendFriendRequest('${u.id}','${u.username}',this)">➕</button>`;
-        const dist = (myLocation && u.lat && u.lng) ? calcDistance(myLocation.lat, myLocation.lng, u.lat, u.lng) : null;
+// ────────────────────────────────────────────
+// HOME PAGE
+// ────────────────────────────────────────────
+function renderHome(){
+  const users = locationFilter
+    ? realUsers.filter(u => u.lat && u.lng && myLocation && calcDistance(myLocation.lat,myLocation.lng,u.lat,u.lng,true) < 50)
+    : realUsers;
+
+  const usersHTML = users.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">🌍</div><div class="empty-text">Yakında kimse yok</div><div class="empty-sub">Konum filtresini kapat veya daha sonra tekrar dene</div></div>`
+    : users.map(u => {
+        const av = getAvatar(u.avatar);
+        const isFr = isFriend(u.id), isPend = isPending(u.id);
+        const dist = (myLocation && u.lat && u.lng) ? calcDistance(myLocation.lat,myLocation.lng,u.lat,u.lng) : null;
+        const btnHTML = isFr
+          ? `<button class="add-btn added" disabled>✅</button>`
+          : isPend
+          ? `<button class="add-btn added" disabled>⏳</button>`
+          : `<button class="add-btn add" onclick="sendFriendRequest('${u.id}','${u.username}',this)">➕</button>`;
         return `
-          <div class="person-card" onclick="openChat('${u.id}','${u.username}','🎭')">
-            <div class="person-avatar" style="background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(255,107,157,0.15));">
-              🎭
-              <div class="status online"></div>
+          <div class="person-card" onclick="openUserProfile('${u.id}')">
+            <div class="p-avatar">
+              <div style="width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:38px;background:linear-gradient(135deg,${av.color}30,${av.color}50);width:100%;height:100%;">${av.emoji}</div>
+              <div class="status-dot"></div>
             </div>
-            <div class="person-info">
-              <div class="person-name">${u.username}${u.age ? ', '+u.age : ''}</div>
-              <div class="person-bio">${u.bio || '...'}</div>
-              <div class="person-tags">
-                ${dist ? `<span class="distance-tag">📍 ${dist}</span>` : u.city ? `<span class="distance-tag">📍 ${u.city}</span>` : ''}
-                ${(u.interests||[]).slice(0,2).map(i => `<span class="tag" style="background:rgba(168,85,247,0.2);color:#C084FC;">${i}</span>`).join('')}
+            <div class="p-info">
+              <div class="p-name">🎭 ${u.username||'Anonim'}${u.age?', '+u.age:''}</div>
+              <div class="p-bio">${u.bio||'...'}</div>
+              <div class="p-tags">
+                ${dist?`<span class="tag dist-tag">📍 ${dist}</span>`:(u.city?`<span class="tag dist-tag">📍 ${u.city}</span>`:'')}
+                ${(u.interests||[]).slice(0,2).map(i=>`<span class="tag int-tag-sm">${i}</span>`).join('')}
               </div>
             </div>
-            ${btnHTML}
+            <div class="p-actions">${btnHTML}</div>
           </div>`;
       }).join('');
 
-  const featuredHTML = realUsers.slice(0,3).map(u => `
-    <div class="feat-card" onclick="openChat('${u.id}','${u.username}','${u.avatar||'👤'}')">
-      <div class="feat-avatar-placeholder" style="background:linear-gradient(135deg,${randomGrad()});">${u.avatar||'👤'}</div>
-      <div class="online-dot"></div>
-      <div class="feat-badge" style="background:linear-gradient(135deg,${randomGrad()});">✨ Yeni</div>
-      <div class="feat-overlay">
-        <div class="feat-name">${u.username}${u.age ? ', '+u.age : ''}</div>
-        <div class="feat-info">📍 ${u.city||''}</div>
+  return `
+    <div class="location-bar">
+      <div class="loc-badge ${locationFilter?'active':''}" onclick="toggleLocationFilter()" id="locBadge">
+        📍 ${myLocation?.city || 'Konum al...'}
       </div>
-    </div>`).join('') || `<div style="padding:20px;color:rgba(255,255,255,0.3);font-size:13px;">Henüz kullanıcı yok</div>`;
-
-  document.getElementById('app').innerHTML = `
-    <div class="app-screen fade-in">
-      <div class="status-bar"><span>${h}:${m}</span><span>📶 🔋</span></div>
-      <div class="header">
-        <div class="logo">TanışBul</div>
-        <div class="header-right">
-          <div class="anon-badge">🎭 Anonim</div>
-          <div class="icon-btn" onclick="loadUsers().then(renderHome)" title="Yenile">🔄</div>
-        </div>
-      </div>
-      <div style="padding:0 24px 16px;display:flex;align-items:center;gap:10px;">
-        <div class="location-badge" onclick="loadUsers().then(renderHome)">
-          📍 ${myLocation ? myLocation.city : 'Konum al...'}
-        </div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.3);">${realUsers.length} kişi yakında</div>
-      </div>
-
-      <div class="search-wrap">
-        <div class="search-bar">🔍 <span>İlgi alanına göre ara...</span></div>
-      </div>
-
-      <div class="categories">
-        <div class="cat-pill active">🌟 Tümü</div>
-        <div class="cat-pill">🎮 Oyun</div>
-        <div class="cat-pill">🎵 Müzik</div>
-        <div class="cat-pill">📚 Kitap</div>
-        <div class="cat-pill">🏃 Spor</div>
-        <div class="cat-pill">✈️ Seyahat</div>
-      </div>
-
-      <div class="section-title">
-        <h2>🔥 Üyeler</h2>
-        <span>${realUsers.length} kişi</span>
-      </div>
-      <div class="featured-scroll">${featuredHTML}</div>
-
-      <div class="section-title">
-        <h2>👥 Tüm Kullanıcılar</h2>
-      </div>
-      <div class="people-list">${usersHTML}</div>
-
-      <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('home',this)">
-          <div class="nav-icon">🏠</div><span class="nav-label">Ana Sayfa</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('discover',this)">
-          <div class="nav-icon">🔍</div><span class="nav-label">Keşfet</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('messages',this)">
-          <div class="nav-icon">💬</div><span class="nav-label">Mesajlar</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('profile',this)">
-          <div class="nav-icon">👤</div><span class="nav-label">Profil</span>
-        </div>
-      </div>
+      <div class="anon-badge">🎭 Anonim</div>
+      <div style="margin-left:auto;font-size:12px;color:var(--muted);">${users.length} kişi</div>
     </div>
-
-    <div class="match-overlay" id="matchOverlay" onclick="closeMatch()"></div>
-    <div class="match-popup" id="matchPopup">
-      <div class="match-emoji">🎉</div>
-      <div class="match-title">Eşleşme!</div>
-      <div class="match-sub"><strong id="matchName"></strong> ile ortak ilgi alanlarınız var!</div>
-      <div class="match-actions">
-        <button class="match-btn secondary" onclick="closeMatch()">Sonra</button>
-        <button class="match-btn primary" onclick="closeMatch()">💬 Mesaj At</button>
-      </div>
-    </div>
-  `;
-
-  // Category pills
-  document.querySelectorAll('.cat-pill').forEach(pill => {
-    pill.addEventListener('click', function() {
-      document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
+    <div class="ad-banner"><div><div class="ad-label">Reklam</div><div class="ad-text">Buraya reklam verin — tanisbul.online/reklam</div></div><div style="font-size:20px;">📢</div></div>
+    ${usersHTML}`;
+}
+function initHomePage(){}
+function toggleLocationFilter(){
+  locationFilter = !locationFilter;
+  renderPage(currentPage);
+}
+function renderPage(page){
+  const mob = document.getElementById('mobileContent');
+  const desk = document.getElementById('deskContent');
+  const html = getPageHTML(page);
+  if(mob && window.innerWidth < 768) mob.innerHTML = html;
+  if(desk && window.innerWidth >= 768) desk.innerHTML = html;
+  if(page==='discover') initDiscoverPage();
+  if(page==='messages') initMessagesPage();
 }
 
-function renderProfile() {
-  const p = currentProfile || {};
-  document.getElementById('app').innerHTML = `
-    <div class="profile-page fade-in">
-      <div class="profile-header">
-        <div class="profile-big-avatar">${p.avatar || '👤'}</div>
-        <div class="profile-name">${p.username || 'Kullanıcı'}</div>
-        <div class="profile-email">${currentUser?.email || ''}</div>
-      </div>
-
-      <div class="profile-stats">
-        <div class="pstat"><div class="pstat-val">0</div><div class="pstat-label">Arkadaş</div></div>
-        <div class="pstat"><div class="pstat-val">0</div><div class="pstat-label">Eşleşme</div></div>
-        <div class="pstat"><div class="pstat-val">${p.age || '-'}</div><div class="pstat-label">Yaş</div></div>
-      </div>
-
-      <div class="profile-section">
-        <div class="profile-section-title">📍 Şehir</div>
-        <div style="font-size:15px;">${p.city || 'Belirtilmedi'}</div>
-      </div>
-
-      <div class="profile-section">
-        <div class="profile-section-title">💬 Bio</div>
-        <div style="font-size:14px;color:rgba(255,255,255,0.7);">${p.bio || 'Henüz bio eklenmedi'}</div>
-      </div>
-
-      <div class="profile-section">
-        <div class="profile-section-title">🎯 İlgi Alanları</div>
-        <div class="person-tags" style="margin-top:0;">
-          ${(p.interests || []).map(i => `<span class="tag" style="background:rgba(168,85,247,0.2);color:#C084FC;">${i}</span>`).join('')}
-        </div>
-      </div>
-
-      <button class="logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
-
-      <div class="bottom-nav">
-        <div class="nav-item" onclick="switchTab('home',this)">
-          <div class="nav-icon">🏠</div><span class="nav-label">Ana Sayfa</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('discover',this)">
-          <div class="nav-icon">🔍</div><span class="nav-label">Keşfet</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('messages',this)">
-          <div class="nav-icon">💬</div><span class="nav-label">Mesajlar</span>
-        </div>
-        <div class="nav-item active" onclick="switchTab('profile',this)">
-          <div class="nav-icon">👤</div><span class="nav-label">Profil</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function switchTab(tab, el) {
-  activeTab = tab;
-  if (tab === 'home') renderHome();
-  else if (tab === 'profile') renderProfile();
-  else if (tab === 'messages') renderMessagesTab();
-  else if (tab === 'discover') renderDiscover();
-}
-
-async function renderMessagesTab() {
-  // Load all conversations (unique people I've messaged)
-  const { data: msgs } = await db.from('messages').select('*')
-    .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
-    .order('created_at', { ascending: false });
-
-  const seen = new Set();
-  const convos = [];
-  for (const msg of (msgs||[])) {
-    const otherId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
-    if (!seen.has(otherId)) {
-      seen.add(otherId);
-      const user = realUsers.find(u => u.id === otherId);
-      if (user) convos.push({ user, lastMsg: msg });
-    }
-  }
-
-  const convosHTML = convos.length === 0
-    ? `<div style="padding:60px 20px;text-align:center;color:rgba(255,255,255,0.3);">
-        <div style="font-size:48px;margin-bottom:12px;">💬</div>
-        <div>Henüz mesajlaşma yok.<br>Birine merhaba de!</div>
-      </div>`
-    : convos.map(c => `
-        <div onclick="openChat('${c.user.id}','${c.user.username}','${c.user.avatar||'👤'}')" 
-          style="display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.2s;"
-          onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
-          <div style="width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,rgba(255,107,157,0.2),rgba(168,85,247,0.2));display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">${c.user.avatar||'👤'}</div>
-          <div style="flex:1;">
-            <div style="font-weight:800;font-size:15px;">${c.user.username}</div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:3px;">${c.lastMsg.content.slice(0,40)}${c.lastMsg.content.length>40?'...':''}</div>
-          </div>
-        </div>`).join('');
-
-  document.getElementById('app').innerHTML = `
-    <div class="app-screen fade-in">
-      <div class="status-bar"><span>${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2,'0')}</span><span>📶 🔋</span></div>
-      <div class="header"><div class="logo" style="font-family:'Pacifico',cursive;font-size:22px;background:linear-gradient(135deg,#FF6B9D,#A855F7,#06B6D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Mesajlar</div></div>
-      <div style="flex:1;">${convosHTML}</div>
-      <div class="bottom-nav">
-        <div class="nav-item" onclick="switchTab('home',this)"><div class="nav-icon">🏠</div><span class="nav-label">Ana Sayfa</span></div>
-        <div class="nav-item" onclick="switchTab('discover',this)"><div class="nav-icon">🔍</div><span class="nav-label">Keşfet</span></div>
-        <div class="nav-item active" onclick="switchTab('messages',this)"><div class="nav-icon">💬</div><span class="nav-label">Mesajlar</span></div>
-        <div class="nav-item" onclick="switchTab('profile',this)"><div class="nav-icon">👤</div><span class="nav-label">Profil</span></div>
-      </div>
-    </div>
-  `;
-}
-
-function renderDiscover() {
-  renderHome(); // same as home for now
-}
-
-function randomGrad() {
-  const pairs = [
-    '#FF6B9D,#A855F7','#3B82F6,#06B6D4','#10B981,#FBBF24','#F97316,#EF4444'
-  ];
-  return pairs[Math.floor(Math.random() * pairs.length)];
-}
-
-function showMatchPopup(name) {
-  document.getElementById('matchName').textContent = name;
-  document.getElementById('matchOverlay').classList.add('show');
-  document.getElementById('matchPopup').classList.add('show');
-}
-
-function closeMatch() {
-  document.getElementById('matchOverlay').classList.remove('show');
-  document.getElementById('matchPopup').classList.remove('show');
-}
-
-async function sendFriendRequest(receiverId, name, btn) {
-  if (!btn || btn.classList.contains('added')) return;
-  btn.disabled = true;
-  btn.textContent = '⏳';
-  btn.classList.remove('add');
-  btn.classList.add('added');
-
-  const { error } = await db.from('friendships').insert({
-    sender_id: currentUser.id,
-    receiver_id: receiverId,
-    status: 'pending'
-  });
-
-  if (error) {
-    btn.textContent = '❌';
-    return;
-  }
-
-  // sparkles
-  const sparkles = ['✨','🌟','💫','⭐'];
-  for (let i = 0; i < 4; i++) {
-    const s = document.createElement('div');
-    s.className = 'sparkle';
-    s.textContent = sparkles[i % 4];
-    const rect = btn.getBoundingClientRect();
-    const phone = document.querySelector('.phone').getBoundingClientRect();
-    s.style.left = (rect.left - phone.left + Math.random()*60-20)+'px';
-    s.style.top = (rect.top - phone.top + Math.random()*40-20)+'px';
-    document.querySelector('.phone').appendChild(s);
-    setTimeout(() => s.remove(), 800);
-  }
-
-  await loadUsers();
-  setTimeout(() => showMatchPopup(name), 400);
-}
-
-async function openChat(userId, username, avatar) {
-  activeMessages = { userId, username, avatar };
-  await renderChat(userId, username, avatar);
-}
-
-async function renderChat(userId, username, avatar) {
-  // Load messages
-  const { data: msgs } = await db.from('messages').select('*')
-    .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`)
-    .order('created_at', { ascending: true });
-
-  const msgsHTML = (msgs||[]).length === 0
-    ? `<div style="text-align:center;color:rgba(255,255,255,0.3);padding:40px 20px;font-size:13px;">Henüz mesaj yok.<br>Merhaba de! 👋</div>`
-    : (msgs||[]).map(msg => {
-        const isMe = msg.sender_id === currentUser.id;
-        return `<div style="display:flex;justify-content:${isMe?'flex-end':'flex-start'};margin-bottom:8px;">
-          <div style="max-width:70%;padding:10px 14px;border-radius:${isMe?'18px 18px 4px 18px':'18px 18px 18px 4px'};background:${isMe?'linear-gradient(135deg,#FF6B9D,#A855F7)':'rgba(255,255,255,0.08)'};font-size:14px;color:white;">
-            ${msg.content}
-          </div>
-        </div>`;
+// ────────────────────────────────────────────
+// DISCOVER PAGE
+// ────────────────────────────────────────────
+function renderDiscover(){
+  const postsHTML = discoverPosts.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">Henüz gönderi yok</div><div class="empty-sub">İlk gönderiyi sen yap!</div></div>`
+    : discoverPosts.map(p => {
+        const av = getAvatar(p.author?.avatar);
+        return `
+          <div class="discover-post">
+            <div class="disc-user">
+              <div class="disc-av"><div style="font-size:24px;">${av.emoji}</div></div>
+              <div><div class="disc-username">🎭 ${p.author?.username||'Anonim'}</div><div class="disc-time">${timeAgo(p.created_at)}</div></div>
+            </div>
+            <div class="disc-content">${p.content}</div>
+            <div class="disc-actions">
+              <div class="disc-action" onclick="likePost('${p.id}',this)">❤️ ${p.likes||0}</div>
+              <div class="disc-action" onclick="replyPost('${p.id}','${p.author?.username}')">💬 Yanıtla</div>
+            </div>
+          </div>`;
       }).join('');
 
-  document.getElementById('app').innerHTML = `
-    <div class="app-screen fade-in" style="display:flex;flex-direction:column;height:844px;">
-      <div style="padding:20px 20px 16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,0.06);background:var(--bg);">
-        <div onclick="showApp()" style="cursor:pointer;font-size:22px;padding:8px;">←</div>
-        <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,rgba(255,107,157,0.2),rgba(168,85,247,0.2));display:flex;align-items:center;justify-content:center;font-size:22px;">${avatar}</div>
-        <div>
-          <div style="font-weight:800;font-size:15px;">${username}</div>
-          <div style="font-size:12px;color:var(--green);">● Çevrimiçi</div>
-        </div>
-      </div>
-
-      <div id="chatMessages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;">
-        ${msgsHTML}
-      </div>
-
-      <div style="padding:16px 20px 30px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,0.06);background:var(--bg);">
-        <input id="msgInput" type="text" placeholder="Mesaj yaz..." 
-          style="flex:1;background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 16px;color:white;font-family:'Nunito',sans-serif;font-size:14px;outline:none;"
-          onkeydown="if(event.key==='Enter') sendMessage('${userId}')">
-        <button onclick="sendMessage('${userId}')" 
-          style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#FF6B9D,#A855F7);border:none;cursor:pointer;font-size:20px;color:white;transition:all 0.2s;"
-          onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-          ➤
-        </button>
-      </div>
+  return `
+    <div class="discover-input-wrap">
+      <input class="discover-inp" id="discoverInput" placeholder="💬 Bir şeyler yaz..." onkeydown="if(event.key==='Enter')postDiscover()">
     </div>
-  `;
+    <div style="padding:16px 20px 8px;">
+      <button class="btn-main" style="padding:12px;" onclick="postDiscover()">Paylaş 🚀</button>
+    </div>
+    <div id="postsList">${postsHTML}</div>`;
+}
+function initDiscoverPage(){}
+async function postDiscover(){
+  const inp = document.getElementById('discoverInput');
+  if(!inp) return;
+  const raw = inp.value.trim();
+  if(!raw){ showToast('❌ Bir şeyler yaz!'); return; }
+  const content = filterBadWords(raw);
+  const { error } = await db.from('posts').insert({ author_id: currentUser.id, content, likes: 0, created_at: new Date().toISOString() }).catch(()=>({error:{message:'posts tablosu yok'}}));
+  if(error){
+    // posts table might not exist, show locally
+    discoverPosts.unshift({ id: Date.now(), author: myProfile, content, likes: 0, created_at: new Date().toISOString() });
+  } else {
+    await loadDiscoverPosts();
+  }
+  inp.value = '';
+  renderPage(currentPage);
+  showToast('✅ Paylaşıldı!');
+}
+async function likePost(id, el){
+  el.classList.add('liked');
+  const current = parseInt(el.textContent.replace(/[^0-9]/g,''))||0;
+  el.textContent = '❤️ '+(current+1);
+  await db.from('posts').update({likes: current+1}).eq('id', id).catch(()=>{});
+}
+function replyPost(id, username){ showToast(`💬 @${username} yanıtlıyorsunuz...`); }
 
-  // Scroll to bottom
-  const chatEl = document.getElementById('chatMessages');
-  if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+// ────────────────────────────────────────────
+// MESSAGES PAGE
+// ────────────────────────────────────────────
+function renderMessages(){
+  loadMsgLimit();
+  const timeLeft = getMsgLimitTimeLeft();
+  const chats = getChatList();
+  const chatsHTML = chats.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">Henüz mesaj yok</div><div class="empty-sub">Birine arkadaşlık isteği gönder!</div></div>`
+    : chats.map(c => {
+        const av = getAvatar(c.avatar);
+        return `
+          <div class="chat-item" onclick="openChat('${c.userId}','${c.username}','${c.avatar}')">
+            <div class="chat-av"><div style="font-size:30px;">${av.emoji}</div></div>
+            <div class="chat-info">
+              <div class="chat-name">🎭 ${c.username}</div>
+              <div class="chat-last">${c.lastMsg||'...'}</div>
+            </div>
+            <div class="chat-meta">
+              <div class="chat-time">${c.time}</div>
+              ${c.unread?`<div class="unread-badge">${c.unread}</div>`:''}
+            </div>
+          </div>`;
+      }).join('');
+
+  return `
+    <div class="msg-limit-bar">
+      <div><div class="msg-limit-text">Mesaj Hakkı</div><div class="msg-limit-timer">${timeLeft}</div></div>
+      <div class="msg-limit-count">${msgLimit.count}/20</div>
+    </div>
+    ${chatsHTML}`;
+}
+function initMessagesPage(){}
+function getChatList(){
+  const friends = myFriendships.filter(f => f.status === 'accepted');
+  return friends.map(f => {
+    const otherId = f.sender_id === currentUser.id ? f.receiver_id : f.sender_id;
+    const other = realUsers.find(u => u.id === otherId);
+    if(!other) return null;
+    const msgs = allMessages.filter(m => (m.sender_id===currentUser.id&&m.receiver_id===otherId)||(m.sender_id===otherId&&m.receiver_id===currentUser.id));
+    const last = msgs[0];
+    return { userId: otherId, username: other.username, avatar: other.avatar, lastMsg: last?.content, time: last?timeAgo(last.created_at):'' };
+  }).filter(Boolean);
 }
 
-async function sendMessage(receiverId) {
-  const input = document.getElementById('msgInput');
-  const content = input.value.trim();
-  if (!content) return;
-  input.value = '';
+// ────────────────────────────────────────────
+// CHAT
+// ────────────────────────────────────────────
+let activeChatUserId = null;
+function openChat(userId, username, avatarId){
+  activeChatUserId = userId;
+  const av = getAvatar(avatarId);
+  const msgs = allMessages.filter(m => (m.sender_id===currentUser.id&&m.receiver_id===userId)||(m.sender_id===userId&&m.receiver_id===currentUser.id)).reverse();
+  const msgsHTML = msgs.map(m => {
+    const mine = m.sender_id === currentUser.id;
+    const isImg = m.content.startsWith('[IMG]');
+    const content = isImg ? `<img src="${m.content.replace('[IMG]','')}" alt="foto">` : m.content;
+    return `<div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'};">
+      <div class="msg-bubble ${mine?'mine':'theirs'}">${content}<div class="msg-time">${timeAgo(m.created_at)}</div></div>
+    </div>`;
+  }).join('');
 
-  await db.from('messages').insert({
-    sender_id: currentUser.id,
-    receiver_id: receiverId,
-    content
-  });
+  const chatHTML = `
+    <div class="chat-view">
+      <div class="chat-header">
+        <div class="chat-back" onclick="showPage('messages')">‹</div>
+        <div class="chat-av-sm"><div style="font-size:26px;">${av.emoji}</div></div>
+        <div><div class="chat-user-name">🎭 ${username}</div><div class="chat-status">● Çevrimiçi</div></div>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <div class="icon-btn" onclick="openVoiceChat('${userId}','${username}','${avatarId}')">🎙️</div>
+          <div class="icon-btn" onclick="openUserProfile('${userId}')">👤</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages">${msgsHTML}</div>
+      <div class="chat-input-bar">
+        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="sendPhoto(this)">
+        <div class="photo-btn" onclick="document.getElementById('photoInput').click()">📷</div>
+        <input class="chat-inp" id="msgInput" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter')sendMessage('${userId}')">
+        <div class="send-btn" onclick="sendMessage('${userId}')">➤</div>
+      </div>
+    </div>`;
 
-  if (activeMessages) {
-    await renderChat(activeMessages.userId, activeMessages.username, activeMessages.avatar);
+  const content = document.getElementById('mobileContent') || document.getElementById('deskContent');
+  if(content){ content.innerHTML = chatHTML; scrollToBottom(); }
+}
+function scrollToBottom(){
+  const el = document.getElementById('chatMessages');
+  if(el) el.scrollTop = el.scrollHeight;
+}
+async function sendMessage(toId){
+  const inp = document.getElementById('msgInput');
+  if(!inp) return;
+  const raw = inp.value.trim();
+  if(!raw) return;
+  if(msgLimit.count <= 0){ showToast('⏳ Mesaj hakkın bitti! '+getMsgLimitTimeLeft()); return; }
+  const content = filterBadWords(raw);
+  const { error } = await db.from('messages').insert({ sender_id: currentUser.id, receiver_id: toId, content, created_at: new Date().toISOString() });
+  if(!error){
+    inp.value = '';
+    decreaseMsgLimit();
+    await loadMessages();
+    openChat(toId, realUsers.find(u=>u.id===toId)?.username||'...', realUsers.find(u=>u.id===toId)?.avatar||'wolf');
+  }
+}
+async function sendPhoto(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024){ showToast('❌ Fotoğraf 2MB\'dan küçük olmalı!'); return; }
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result;
+    if(msgLimit.count <= 0){ showToast('⏳ Mesaj hakkın bitti!'); return; }
+    await db.from('messages').insert({ sender_id: currentUser.id, receiver_id: activeChatUserId, content: '[IMG]'+base64, created_at: new Date().toISOString() });
+    decreaseMsgLimit();
+    await loadMessages();
+    const other = realUsers.find(u=>u.id===activeChatUserId);
+    if(other) openChat(other.id, other.username, other.avatar);
+  };
+  reader.readAsDataURL(file);
+}
+
+// ────────────────────────────────────────────
+// VOICE CHAT
+// ────────────────────────────────────────────
+function openVoiceChat(userId, username, avatarId){
+  const av = getAvatar(avatarId);
+  showModal(`
+    <div class="voice-modal">
+      <div class="voice-av"><div style="font-size:52px;">${av.emoji}</div></div>
+      <div style="font-size:18px;font-weight:900;">🎭 ${username}</div>
+      <div style="font-size:13px;color:var(--green);margin-top:4px;">● Sesli görüşme aktif</div>
+      <div class="voice-waves">
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      </div>
+      <div class="voice-btns">
+        <button class="voice-btn mute" onclick="showToast('🔇 Mikrofon kapatıldı')">🔇</button>
+        <button class="voice-btn end" onclick="closeModal();showToast('📵 Görüşme sonlandırıldı')">📵</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:12px;">⚠️ Sesli sohbet özelliği yakında tam olarak aktif olacak</div>
+    </div>
+  `, '🎙️ Sesli Görüşme');
+}
+
+// ────────────────────────────────────────────
+// MSG LIMIT
+// ────────────────────────────────────────────
+function loadMsgLimit(){
+  const saved = localStorage.getItem('tb_msglimit');
+  if(saved){
+    const data = JSON.parse(saved);
+    if(data.resetAt && Date.now() > data.resetAt){
+      msgLimit = { count: 20, resetAt: null };
+      localStorage.removeItem('tb_msglimit');
+    } else {
+      msgLimit = data;
+    }
+  }
+}
+function decreaseMsgLimit(){
+  msgLimit.count = Math.max(0, msgLimit.count-1);
+  if(msgLimit.count === 0){ msgLimit.resetAt = Date.now() + 30*60*1000; }
+  localStorage.setItem('tb_msglimit', JSON.stringify(msgLimit));
+}
+function getMsgLimitTimeLeft(){
+  if(!msgLimit.resetAt || msgLimit.count > 0) return msgLimit.count > 0 ? '' : 'Yenileniyor...';
+  const left = msgLimit.resetAt - Date.now();
+  if(left <= 0){ loadMsgLimit(); return ''; }
+  const mins = Math.ceil(left/60000);
+  return `${mins} dakika sonra yenilenir`;
+}
+
+// ────────────────────────────────────────────
+// MY PROFILE
+// ────────────────────────────────────────────
+function renderMyProfile(){
+  if(!myProfile) return '<div class="empty-state"><div class="empty-icon">👤</div></div>';
+  const av = getAvatar(myProfile.avatar);
+  return `
+    <div class="profile-page">
+      <div class="profile-banner" style="background:linear-gradient(135deg,${av.color}40,${av.color}20);">
+        <div class="profile-av-wrap"><div style="font-size:48px;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">${av.emoji}</div></div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name">🎭 ${myProfile.username||'Anonim'}</div>
+        <div style="font-size:13px;color:var(--cyan);margin-top:2px;">${av.name}</div>
+        <div class="profile-bio">${myProfile.bio||'Henüz bio yok'}</div>
+        <div class="profile-stats">
+          <div class="pstat"><div class="pstat-num">${myFriendships.filter(f=>f.status==='accepted').length}</div><div class="pstat-label">Arkadaş</div></div>
+          <div class="pstat"><div class="pstat-num">${myProfile.age||'—'}</div><div class="pstat-label">Yaş</div></div>
+          <div class="pstat"><div class="pstat-num">${myProfile.city||'—'}</div><div class="pstat-label">Şehir</div></div>
+        </div>
+        <div class="interest-grid">${(myProfile.interests||[]).map(i=>`<div class="int-tag selected">${i}</div>`).join('')}</div>
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn-main" style="flex:1;" onclick="showToast('✏️ Profil düzenleme yakında!')">Profili Düzenle</button>
+          <button class="btn-report" onclick="doLogout()">🚪 Çıkış</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ────────────────────────────────────────────
+// USER PROFILE
+// ────────────────────────────────────────────
+function openUserProfile(userId){
+  const u = realUsers.find(u=>u.id===userId);
+  if(!u) return;
+  const av = getAvatar(u.avatar);
+  const isFollowing = follows.some(f=>f.following_id===userId);
+  const isFr = isFriend(userId);
+  showModal(`
+    <div class="profile-page" style="margin:-28px -24px;">
+      <div class="profile-banner" style="background:linear-gradient(135deg,${av.color}40,${av.color}20);height:100px;">
+        <div class="profile-av-wrap"><div style="font-size:40px;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">${av.emoji}</div></div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name">🎭 ${u.username||'Anonim'}</div>
+        <div style="font-size:13px;color:var(--cyan);margin-top:2px;">${av.name}</div>
+        <div class="profile-bio">${u.bio||'...'}</div>
+        <div class="profile-stats">
+          <div class="pstat"><div class="pstat-num">${u.age||'—'}</div><div class="pstat-label">Yaş</div></div>
+          <div class="pstat"><div class="pstat-num">${u.city||'—'}</div><div class="pstat-label">Şehir</div></div>
+        </div>
+        <div class="interest-grid">${(u.interests||[]).map(i=>`<div class="int-tag selected">${i}</div>`).join('')}</div>
+        <div class="profile-btns" style="margin-top:16px;">
+          <button class="btn-follow ${isFollowing?'following':''}" onclick="toggleFollow('${userId}',this)">${isFollowing?t('following'):t('follow')}</button>
+          ${isFr ? `<button class="btn-msg" onclick="closeModal();openChat('${u.id}','${u.username}','${u.avatar}')">💬 Mesaj</button>` : `<button class="btn-msg" onclick="sendFriendRequest('${u.id}','${u.username}',this)">➕ Ekle</button>`}
+          <button class="btn-report" onclick="showReportModal('${userId}','${u.username}')">🚩</button>
+        </div>
+      </div>
+    </div>
+  `, '');
+}
+async function toggleFollow(userId, btn){
+  const isFollowing = follows.some(f=>f.following_id===userId);
+  if(isFollowing){
+    await db.from('follows').delete().eq('follower_id',currentUser.id).eq('following_id',userId).catch(()=>{});
+    follows = follows.filter(f=>f.following_id!==userId);
+    btn.className = 'btn-follow'; btn.textContent = t('follow');
+  } else {
+    await db.from('follows').insert({follower_id:currentUser.id,following_id:userId}).catch(()=>{});
+    follows.push({follower_id:currentUser.id,following_id:userId});
+    btn.className = 'btn-follow following'; btn.textContent = t('following');
   }
 }
 
-async function logout() {
-  try { if (clerkInstance) await clerkInstance.signOut(); } catch(e) {}
-  localStorage.removeItem('ab_user');
-  currentUser = null;
-  currentProfile = null;
-  showAuth();
+// ────────────────────────────────────────────
+// REPORT
+// ────────────────────────────────────────────
+function showReportModal(userId, username){
+  closeModal();
+  setTimeout(()=>{
+    showModal(`
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">@${username} adlı kullanıcıyı şikayet ediyorsunuz</div>
+      <div class="report-option" onclick="submitReport('${userId}','spam')">📵 Spam</div>
+      <div class="report-option" onclick="submitReport('${userId}','harassment')">😡 Taciz</div>
+      <div class="report-option" onclick="submitReport('${userId}','inappropriate')">🔞 Uygunsuz içerik</div>
+      <div class="report-option" onclick="submitReport('${userId}','fake')">🤥 Sahte profil</div>
+      <div class="report-option" onclick="submitReport('${userId}','other')">❓ Diğer</div>
+    `, '🚩 Şikayet Et');
+  }, 200);
+}
+async function submitReport(userId, reason){
+  await db.from('reports').insert({reporter_id:currentUser.id,reported_id:userId,reason,created_at:new Date().toISOString()}).catch(()=>{});
+  closeModal();
+  showToast('✅ Şikayetin alındı!');
 }
 
-// Start
+// ────────────────────────────────────────────
+// NOTIFICATIONS
+// ────────────────────────────────────────────
+function showNotifications(){ showPage('notifications'); }
+function renderNotifications(){
+  const html = notifications.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-text">Bildirim yok</div></div>`
+    : notifications.map(n => {
+        const av = getAvatar(n.sender?.avatar);
+        return `
+          <div class="notif-item unread">
+            <div class="notif-icon" style="background:rgba(255,107,157,0.15);">${av.emoji}</div>
+            <div class="notif-text"><strong>🎭 ${n.sender?.username||'Biri'}</strong> sana arkadaşlık isteği gönderdi</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <button onclick="acceptFriend('${n.id}','${n.sender_id}')" style="padding:6px 12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">Kabul</button>
+              <button onclick="rejectFriend('${n.id}')" style="padding:6px 12px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">Reddet</button>
+            </div>
+          </div>`;
+      }).join('');
+  return `<div style="padding-top:8px;">${html}</div>`;
+}
+async function acceptFriend(id, senderId){
+  await db.from('friendships').update({status:'accepted'}).eq('id',id);
+  await loadUsers(); await loadMessages(); await loadNotifications();
+  renderPage(currentPage);
+  showToast('✅ Arkadaşlık kabul edildi!');
+}
+async function rejectFriend(id){
+  await db.from('friendships').delete().eq('id',id);
+  await loadNotifications();
+  renderPage(currentPage);
+  showToast('❌ Arkadaşlık reddedildi');
+}
+
+// ────────────────────────────────────────────
+// SETTINGS
+// ────────────────────────────────────────────
+function renderSettings(){
+  return `
+    <div class="settings-section">
+      <div class="settings-title">Hesap</div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-icon" style="background:rgba(168,85,247,0.15);">🎭</div>
+          <div><div class="settings-label">${myProfile?.username||'Kullanıcı'}</div><div class="settings-sub">${currentUser?.email||''}</div></div>
+        </div>
+      </div>
+      <div class="settings-title" style="margin-top:20px;">Uygulama</div>
+      <div class="settings-item" onclick="toggleLang();showToast('🌐 Dil değiştirildi')">
+        <div class="settings-item-left">
+          <div class="settings-icon" style="background:rgba(6,182,212,0.15);">🌐</div>
+          <div><div class="settings-label">Dil</div><div class="settings-sub">${currentLang==='tr'?'Türkçe':'English'}</div></div>
+        </div>
+        <div style="font-size:13px;color:var(--muted);">›</div>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-icon" style="background:rgba(255,107,157,0.15);">🎭</div>
+          <div><div class="settings-label">Anonim Mod</div><div class="settings-sub">Kimliğin gizli</div></div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+      <div class="settings-item" onclick="showToast('🔔 Bildirimler açık')">
+        <div class="settings-item-left">
+          <div class="settings-icon" style="background:rgba(251,191,36,0.15);">🔔</div>
+          <div><div class="settings-label">Bildirimler</div><div class="settings-sub">Açık</div></div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+      <div class="settings-title" style="margin-top:20px;">Diğer</div>
+      <div class="settings-item" onclick="showToast('📜 Gizlilik politikası')">
+        <div class="settings-item-left"><div class="settings-icon" style="background:rgba(16,185,129,0.15);">📜</div><div><div class="settings-label">Gizlilik Politikası</div></div></div>
+        <div style="font-size:13px;color:var(--muted);">›</div>
+      </div>
+      <div class="settings-item" onclick="doLogout()" style="margin-top:8px;">
+        <div class="settings-item-left"><div class="settings-icon" style="background:rgba(239,68,68,0.15);">🚪</div><div><div class="settings-label" style="color:var(--red);">Çıkış Yap</div></div></div>
+      </div>
+    </div>`;
+}
+
+// ────────────────────────────────────────────
+// FRIENDSHIPS
+// ────────────────────────────────────────────
+function isFriend(id){ return myFriendships.some(f=>f.status==='accepted'&&(f.sender_id===id||f.receiver_id===id)); }
+function isPending(id){ return myFriendships.some(f=>f.status==='pending'&&(f.sender_id===id||f.receiver_id===id)); }
+async function sendFriendRequest(toId, username, btn){
+  if(btn){ btn.disabled=true; btn.textContent='⏳'; }
+  const { error } = await db.from('friendships').insert({ sender_id: currentUser.id, receiver_id: toId, status: 'pending', created_at: new Date().toISOString() });
+  if(!error){
+    showToast(`➕ ${username} kişisine istek gönderildi!`);
+    await loadUsers();
+    renderPage(currentPage);
+  } else {
+    showToast('❌ Hata: '+error.message);
+    if(btn){ btn.disabled=false; btn.textContent='➕'; }
+  }
+}
+
+// ────────────────────────────────────────────
+// REALTIME
+// ────────────────────────────────────────────
+function setupRealtimeMessages(){
+  db.channel('messages').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'}, async (payload) => {
+    const msg = payload.new;
+    if(msg.receiver_id === currentUser.id || msg.sender_id === currentUser.id){
+      await loadMessages();
+      if(activeChatUserId === msg.sender_id || activeChatUserId === msg.receiver_id){
+        const other = realUsers.find(u=>u.id===activeChatUserId);
+        if(other) openChat(other.id, other.username, other.avatar);
+      }
+    }
+  }).subscribe();
+}
+
+// ────────────────────────────────────────────
+// MODAL
+// ────────────────────────────────────────────
+function showModal(content, title=''){
+  const container = document.getElementById('modalContainer');
+  container.innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        ${title ? `<div class="modal-title">${title}<div class="modal-close" onclick="closeModal()">✕</div></div>` : '<div style="text-align:right;"><span onclick="closeModal()" style="cursor:pointer;color:var(--muted);font-size:20px;">✕</span></div>'}
+        ${content}
+      </div>
+    </div>`;
+}
+function closeModal(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('modalContainer').innerHTML = '';
+}
+
+// ────────────────────────────────────────────
+// LOCATION
+// ────────────────────────────────────────────
+async function getLocation(){
+  return new Promise(resolve => {
+    if(!navigator.geolocation){ resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+        const d = await r.json();
+        const city = d.address?.city||d.address?.town||d.address?.county||'Bilinmiyor';
+        myLocation = { lat, lng, city };
+        resolve(myLocation);
+      } catch { myLocation = { lat, lng, city: 'Bilinmiyor' }; resolve(myLocation); }
+    }, () => resolve(null), { timeout: 5000 });
+  });
+}
+function calcDistance(lat1,lng1,lat2,lng2,raw=false){
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  const d=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  if(raw) return d;
+  return d<1 ? Math.round(d*1000)+' m' : Math.round(d)+' km';
+}
+
+// ────────────────────────────────────────────
+// HELPERS
+// ────────────────────────────────────────────
+function timeAgo(dateStr){
+  if(!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m=Math.floor(diff/60000), h=Math.floor(diff/3600000), d=Math.floor(diff/86400000);
+  if(m<1) return 'Az önce';
+  if(m<60) return m+'dk';
+  if(h<24) return h+'sa';
+  return d+'g';
+}
+
+// ────────────────────────────────────────────
+// AUTH STATE CHANGE
+// ────────────────────────────────────────────
+db.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'SIGNED_IN' && session && !currentUser){
+    currentUser = session.user;
+    await loadMyProfile();
+    if(!myProfile) showRules();
+    else showApp();
+  }
+});
+
+// ────────────────────────────────────────────
+// POSTS TABLE AUTO-CREATE (try)
+// ────────────────────────────────────────────
+async function ensureTables(){
+  // Try to insert a dummy check
+  await db.from('follows').select('id').limit(1).catch(()=>{});
+  await db.from('posts').select('id').limit(1).catch(()=>{});
+  await db.from('reports').select('id').limit(1).catch(()=>{});
+}
+
+// ── START ──
 init();
+ensureTables();
 </script>
 </body>
 </html>

@@ -11,7 +11,39 @@
   --pink:#FF6B9D;--purple:#A855F7;--cyan:#06B6D4;--green:#10B981;--red:#EF4444;--orange:#F97316;
   --bg:#0A0A14;--surface:#0F0F1E;--card:#14142A;--border:rgba(255,255,255,0.07);
   --text:#F0EFF8;--muted:rgba(240,239,248,0.45);--nav:64px;
+  --theme-accent:var(--pink);
 }
+/* NIGHT MODE (auto after midnight) */
+body.night-mode{
+  --bg:#050510;--surface:#080818;--card:#0D0D22;--border:rgba(100,80,200,0.12);
+  --purple:#7C3AED;--pink:#DB2777;
+}
+/* ANON FOG */
+body.anon-active::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,0.06),transparent 70%);
+  backdrop-filter:blur(0.4px);
+}
+/* BADGE STYLES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:900;letter-spacing:0.03em;}
+.badge-gold{background:linear-gradient(135deg,#F59E0B,#D97706);color:white;}
+.badge-pink{background:linear-gradient(135deg,var(--pink),var(--purple));color:white;}
+.badge-cyan{background:rgba(6,182,212,0.2);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);}
+.badge-green{background:rgba(16,185,129,0.2);color:var(--green);border:1px solid rgba(16,185,129,0.3);}
+/* ONLINE PULSE */
+.online-pulse{animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.4);}50%{box-shadow:0 0 0 6px rgba(16,185,129,0);}}
+/* SOCIAL PROOF TICKER */
+.sp-ticker{overflow:hidden;white-space:nowrap;}
+.sp-ticker-inner{display:inline-block;animation:ticker 18s linear infinite;}
+@keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+/* ICEBREAKER BTN */
+.ice-btn{padding:8px 12px;border-radius:12px;border:1.5px dashed rgba(168,85,247,0.4);background:rgba(168,85,247,0.08);color:#C084FC;font-size:12px;font-weight:800;cursor:pointer;transition:all 0.2s;font-family:'Nunito',sans-serif;white-space:nowrap;}
+.ice-btn:hover{background:rgba(168,85,247,0.18);border-color:var(--purple);}
+/* SPEED DATE */
+.speed-card{background:linear-gradient(135deg,rgba(255,107,157,0.08),rgba(168,85,247,0.08));border:2px solid rgba(168,85,247,0.2);border-radius:22px;padding:20px;text-align:center;margin:0 18px 14px;}
+.sd-ring{width:80px;height:80px;border-radius:50%;border:3px solid var(--pink);display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 12px;animation:sdRing 1.5s ease-in-out infinite;}
+@keyframes sdRing{0%,100%{border-color:var(--pink);}50%{border-color:var(--purple);box-shadow:0 0 20px rgba(168,85,247,0.4);}}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(168,85,247,0.3);border-radius:2px;}
@@ -396,16 +428,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <script>
-  // AUTH SCREEN'DEN SONRA HEMEN BAŞINDA BU EKLE:
-window.addEventListener('load',async function(){
-  var session=await db.auth.getSession();
-  if(session.data.session){
-    me=session.data.session.user;
-    await loadMyProf();
-    if(myProf) startApp();
-    else show('rulesScreen');
-  }
-});
 const SB_URL='https://snbqilkkysxmzmjfsihf.supabase.co';
 const SB_KEY='sb_publishable_HJ2nnuGyTszm7q_2y40KDQ_GZrSUenq';
 const db=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'tanisbul_session'}});
@@ -414,12 +436,15 @@ const db=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 let me=null,myProf=null;
 let users=[],friends=[],msgs=[],notifs=[],posts=[];
 let myLoc=null,locFilter=false;
-let msgLimit={n:20,resetAt:null};
+let msgLimit={n:5,resetAt:null};
 let curPage='home',chatWith=null;
 let selAvVar=null,selGenderVar=null,selIntsVar=[];
 let lang='tr';
 let gameTimerInt=null,gameTimerSec=0;
 let gamePartner=null; // {uid, username, avatarId}
+let userBadges=[]; // earned badges
+let onlineCount=0; // simulated online count
+let socialProofInt=null; // ticker interval
 
 // AVATARS
 const AVS=[
@@ -442,6 +467,24 @@ const BAD=['amk','oc','got','sik','orospu','pic','ibne'];
 function filter(t){let r=t;BAD.forEach(w=>{r=r.replace(new RegExp(w,'gi'),'***');});return r;}
 
 // GAME QUESTIONS
+const ICEBREAKERS=[
+  'En son ne zaman guldun, neden?',
+  'Su an hangi sarkiyi dinliyorsun?',
+  'Supergucun olsaydi ne olurdu?',
+  'Hayatinin en garip ani nedir?',
+  'Hic kimseye anlatmadigin bir hobbin var mi?',
+  'Kaybolmak istesen nereye giderdin?',
+  'Bir film karakteri olsaydin hangisi olurdun?',
+  'Su an kafani en cok ne mesgul ediyor?',
+  'En son ne zaman yeni bir sey denedin?',
+  'Burada ne ariyorsun aslinda?',
+  'Seni en iyi hangi emoji tanimlar?',
+  '3 kelimeyle kendini tanimla',
+  'Su an canin ne istiyor?',
+  'Gece mi kuzusu musun gunduz mu?',
+  'Sahilde mi, daglarda mi, sehirde mi?',
+];
+
 const TRUTH_QS=[
   'En son ne zaman yalan soyledin?',
   'Gizlice kime asik oldun?',
@@ -701,8 +744,72 @@ async function startApp(){
   await loadPosts();
   loadLimit();
   updateSbUser();
+  applyNightMode();
+  calcBadges();
+  startSocialProofToasts();
   render('home');
   setupRealtime();
+  // Anon fog
+  updateAnonFog();
+}
+
+function toggleNightMode(){
+  var isNight=document.body.classList.toggle('night-mode');
+  localStorage.setItem('tb_nightmode', isNight?'1':'0');
+  toast(isNight?'\uD83C\uDF19 Gece modu aktif':'\u2600\uFE0F Gunduz modu aktif');
+  render(curPage); // refresh settings view
+}
+
+function applyNightMode(){
+  var saved=localStorage.getItem('tb_nightmode');
+  if(saved!==null){ document.body.classList.toggle('night-mode',saved==='1'); }
+  else{ var h=new Date().getHours(); document.body.classList.toggle('night-mode', h>=0&&h<6); }
+  // Re-check every hour
+  setTimeout(applyNightMode, 3600000);
+}
+
+function updateAnonFog(){
+  document.body.classList.toggle('anon-active', myProf&&myProf.is_anon===true);
+}
+
+function calcBadges(){
+  userBadges=[];
+  var frCount=friends.filter(function(f){return f.status==='accepted';}).length;
+  var postCount=posts.filter(function(p){return p.author_id===me.id;}).length;
+  var msgCount=msgs.filter(function(m){return m.sender_id===me.id;}).length;
+  if(frCount>=1) userBadges.push({id:'first_friend',icon:'\uD83E\uDD1D',label:'Ilk Arkadaslik',cls:'badge-green'});
+  if(frCount>=5) userBadges.push({id:'social',icon:'\uD83D\uDC65',label:'10 Arkadas',cls:'badge-cyan'});
+  if(frCount>=10) userBadges.push({id:'popular',icon:'\uD83D\uDC51',label:'Populer',cls:'badge-gold'});
+  if(postCount>=3) userBadges.push({id:'poster',icon:'\uD83D\uDCDD',label:'Aktif Uye',cls:'badge-pink'});
+  if(msgCount>=20) userBadges.push({id:'chatter',icon:'\uD83D\uDCAC',label:'Sohbet Kurdu',cls:'badge-cyan'});
+  if(myProf&&myProf.is_premium) userBadges.push({id:'premium',icon:'\uD83D\uDC8E',label:'Premium',cls:'badge-gold'});
+  // Simulate some achievements
+  if(myProf){
+    var daysSince=Math.floor((Date.now()-new Date(myProf.created_at||Date.now()).getTime())/86400000);
+    if(daysSince>=7) userBadges.push({id:'weekly',icon:'\uD83D\uDD25',label:'Haftalik Aktif',cls:'badge-pink'});
+  }
+  onlineCount = Math.max(users.length, 12) + Math.floor(Math.random()*80)+30;
+}
+
+var SP_CITIES=['Ankara','Istanbul','Izmir','Bursa','Antalya','Konya','Adana','Trabzon'];
+var SP_ACTIONS=[
+  'kisi eslestirildi!',
+  'yeni uye katildi!',
+  'kisi oyun oynadiyor!',
+];
+var _spTimeout=null;
+function startSocialProofToasts(){
+  if(_spTimeout)clearTimeout(_spTimeout);
+  function fireNext(){
+    var city=SP_CITIES[Math.floor(Math.random()*SP_CITIES.length)];
+    var count=Math.floor(Math.random()*5)+1;
+    var action=SP_ACTIONS[Math.floor(Math.random()*SP_ACTIONS.length)];
+    var icons=['\uD83D\uDCAB','\u2728','\uD83C\uDF89','\uD83D\uDD25'];
+    var icon=icons[Math.floor(Math.random()*icons.length)];
+    toast(icon+' '+city+"'dan "+count+' '+action, 3000);
+    _spTimeout=setTimeout(fireNext, 12000+Math.random()*18000);
+  }
+  _spTimeout=setTimeout(fireNext, 8000);
 }
 
 function updateSbUser(){
@@ -777,10 +884,26 @@ function pageHome(){
   var anonTxt=isAnon?'\uD83C\uDFAD '+(lang==='tr'?'Anonim':'Anon'):'\uD83D\uDC64 '+(lang==='tr'?'Gorunur':'Visible');
 
   var html='';
+  // Social proof online counter
+  html+='<div style="padding:10px 18px 4px;display:flex;align-items:center;gap:8px;">'+
+    '<div style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:20px;padding:6px 12px;">'+
+      '<div class="online-dot online-pulse" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>'+
+      '<div style="font-size:12px;font-weight:900;color:var(--green);" id="onlineCnt">'+onlineCount+' kisi cevrimici</div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--muted);font-style:italic;" id="spMsg"></div>'+
+  '</div>';
   // Welcome banner
   html+='<div class="welcome-banner">'+
     '<div class="wb-title">'+(lang==='tr'?'Merhaba':'Hello')+', '+av(myProf?myProf.avatar:'wolf').e+' '+(myProf?myProf.username:'')+'!</div>'+
     '<div class="wb-sub">'+(lang==='tr'?'Bugun '+list.length+' kisi seni bekliyor. Yeni arkadasliklar kur!':'Today '+list.length+' people are waiting. Make new friends!')+'</div>'+
+    (userBadges.length?('<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">'+userBadges.slice(0,4).map(function(b){return '<div class="badge '+b.cls+'">'+b.icon+' '+b.label+'</div>';}).join('')+'</div>'):'')+
+  '</div>';
+
+  // Instagram Banner
+  html+='<div style="margin:0 18px 12px;background:linear-gradient(135deg,rgba(225,48,108,.1),rgba(131,58,180,.1));border:1px solid rgba(225,48,108,.3);border-radius:18px;padding:13px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="openInstagram()">'+
+    '<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#E1306C,#833AB4);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">\uD83D\uDCF8</div>'+
+    '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:900;">@tanisbulonline</div><div style="font-size:11px;color:var(--muted);">Bizi Instagram\'da takip et! \uD83D\uDC4B</div></div>'+
+    '<div style="background:linear-gradient(135deg,#E1306C,#833AB4);color:white;padding:6px 12px;border-radius:10px;font-size:11px;font-weight:900;flex-shrink:0;">Takip Et</div>'+
   '</div>';
 
   // Stats
@@ -804,6 +927,9 @@ function pageHome(){
     '<div class="qa" onclick="toggleAnon()">'+
       '<div class="qa-icon" style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(255,107,157,.15));">'+(isAnon?'\uD83C\uDFAD':'\uD83D\uDC64')+'</div>'+
       '<div class="qa-label">'+(isAnon?'Anonim':'Gorunur')+'</div></div>'+
+    '<div class="qa" onclick="openSubscription()">'+
+      '<div class="qa-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.15),rgba(217,119,6,.15));">\uD83D\uDC8E</div>'+
+      '<div class="qa-label">Premium</div></div>'+
   '</div>';
 
   // Location + anon row
@@ -851,63 +977,75 @@ function toggleLocFilter(){locFilter=!locFilter;render(curPage);}
 function pageDiscover(){
   var myA=av(myProf?myProf.avatar:'wolf');
   var html='';
-  
-  // Arama
-  html+='<div style="padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);">'+
-    '<input class="inp" id="discSearch" placeholder="🔍 Ara (#hashtag veya @kullanıcı)..." '+
-    'style="margin-bottom:10px;" oninput="liveSearch()">'+
+  // Social proof bar
+  html+='<div style="padding:10px 18px;background:rgba(16,185,129,0.06);border-bottom:1px solid rgba(16,185,129,0.1);display:flex;align-items:center;gap:8px;overflow-x:auto;">'+
+    '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">'+
+      '<div class="online-dot online-pulse" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>'+
+      '<div style="font-size:12px;font-weight:900;color:var(--green);">'+onlineCount+' cevrimici</div>'+
+    '</div>'+
+    '<div class="sp-ticker" style="flex:1;">'+
+      '<div class="sp-ticker-inner" style="font-size:11px;color:var(--muted);">'+
+        ['\uD83D\uDCAB Ankara\'dan 3 kisi eslestirildi','\u2728 Istanbul\'dan biri katildi','\uD83C\uDF89 Izmir\'den yeni arkadas','\uD83D\uDD25 Trabzon\'dan aktif uye','\uD83D\uDCAB Ankara\'dan 3 kisi eslestirildi','\u2728 Istanbul\'dan biri katildi'].join(' &nbsp;&nbsp;&bull;&nbsp;&nbsp; ')+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  html+='<div style="padding:12px 18px 10px;border-bottom:1px solid var(--border);">'+
+    '<input class="inp" id="discSearch" placeholder="\uD83D\uDD0D Ara (#hashtag veya @kullanici)..." style="margin-bottom:10px;" oninput="liveSearch()">'+
     '<div style="display:flex;gap:8px;overflow-x:auto;">'+
-      '<select onchange="filterByLocation(this.value)" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;">'+
-        '<option>📍 Tüm Şehirler</option>'+
-        '<option>Ankara</option>'+
-        '<option>İstanbul</option>'+
-        '<option>İzmir</option>'+
-        '<option>Bursa</option>'+
-        '<option>Antalya</option>'+
+      '<select onchange="filterByLocation(this.value)" style="padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:Nunito,sans-serif;cursor:pointer;">'+
+        '<option>\uD83D\uDCCD Tum Sehirler</option>'+
+        '<option>Ankara</option><option>Istanbul</option><option>Izmir</option><option>Bursa</option><option>Antalya</option>'+
       '</select>'+
-      '<select onchange="filterByInterest(this.value)" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;">'+
-        '<option>⭐ Tüm İlgi Alanları</option>'+
+      '<select onchange="filterByInterest(this.value)" style="padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:Nunito,sans-serif;cursor:pointer;">'+
+        '<option>\u2B50 Tum Ilgi Alanlari</option>'+
         INTS.map(function(i){return '<option>'+i+'</option>';}).join('')+
       '</select>'+
     '</div>'+
   '</div>';
-  
-  // Trending
-  html+='<div style="padding:14px 18px;border-bottom:1px solid var(--border);">'+
-    '<div style="font-size:13px;font-weight:900;color:var(--muted);margin-bottom:10px;">🔥 TREND KONULAR</div>';
-  
-  var trends=['#Ankara','#Istanbul','#Oyun','#Muzik','#Seyahat','#Spor','#Sanat','#Film'];
-  trends.forEach(function(t,i){
-    html+='<div style="padding:8px;cursor:pointer;border-radius:10px;margin-bottom:6px;transition:all .2s;background:var(--card);border:1px solid var(--border);display:flex;justify-content:space-between;" '+
-      'onmouseover="this.style.background=\'rgba(255,107,157,.1)\'" '+
-      'onmouseout="this.style.background=\'var(--card)\'" '+
-      'onclick="setDiscInp(\''+t+'\')">';
-    html+='<span style="font-weight:800;color:var(--pink);">'+t+'</span>'+
-      '<span style="font-size:11px;color:var(--muted);">'+(Math.floor(Math.random()*500)+50)+' gonderi</span>'+
-    '</div>';
-  });
-  html+='</div>';
-  
-  // Yazı Kutusu
+  html+='<div class="trending-card">'+
+    '<div style="font-size:13px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">\uD83D\uDD25 Trend</div>'+
+    ['#Ankara','#Istanbul','#Oyun','#Muzik','#Seyahat','#Film','#Spor','#Sanat'].map(function(tag,i){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;cursor:pointer;margin-bottom:4px;" onclick="setDiscInp(\''+tag+'\')">'+
+        '<div style="font-size:13px;font-weight:900;color:var(--pink);width:20px;">'+(i+1)+'</div>'+
+        '<div style="font-size:13px;font-weight:700;">'+tag+'</div>'+
+        '<div style="margin-left:auto;font-size:11px;color:var(--muted);">'+(Math.floor(Math.random()*500)+50)+' gonderi</div>'+
+      '</div>';
+    }).join('')+
+  '</div>';
   html+='<div class="disc-write">'+
     '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">'+
       '<div class="disc-write-av">'+myA.e+'</div>'+
-      '<textarea class="disc-textarea" id="discInp" placeholder="Ne düşünüyorsun?"></textarea>'+
+      '<textarea class="disc-textarea" id="discInp" placeholder="Ne dusunuyorsun?"></textarea>'+
     '</div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:10px;">'+
-      '<span style="font-size:12px;color:var(--muted);">🎭 Anonim paylaşılır</span>'+
-      '<button class="btn btn-sm" onclick="submitPost()">Paylaş 🚀</button>'+
+      '<span style="font-size:12px;color:var(--muted);">\uD83C\uDFAD Anonim paylasilir</span>'+
+      '<button class="btn btn-sm" onclick="submitPost()">Paylas \uD83D\uDE80</button>'+
     '</div>'+
   '</div>';
-  
-  // Filterli Postlar
   html+='<div style="padding:4px 18px 10px;display:flex;gap:6px;overflow-x:auto;">'+
-    '<button class="disc-filter active" id="df-all" onclick="filterPosts(\'all\',this)">Tümü</button>'+
-    '<button class="disc-filter" id="df-hot" onclick="filterPosts(\'hot\',this)">🔥 Populer</button>'+
-    '<button class="disc-filter" id="df-new" onclick="filterPosts(\'new\',this)">✨ Yeni</button>'+
-  '</div>'+
-  '<div id="postList">'+buildPostsHtml(posts)+'</div>';
-  
+    '<button class="disc-filter active" id="df-all" onclick="filterPosts(\'all\',this)">Tumu</button>'+
+    '<button class="disc-filter" id="df-hot" onclick="filterPosts(\'hot\',this)">\uD83D\uDD25 Populer</button>'+
+    '<button class="disc-filter" id="df-new" onclick="filterPosts(\'new\',this)">\u2728 Yeni</button>'+
+  '</div>';
+  // Speed date / online row
+  var onlineUsers=users.slice(0,3);
+  if(onlineUsers.length>0){
+    html+='<div style="padding:12px 18px 4px;">'+
+      '<div style="font-size:13px;font-weight:900;margin-bottom:10px;">\u26A1 Simdi Cevrimici <span style="background:rgba(16,185,129,.15);color:var(--green);font-size:11px;padding:2px 8px;border-radius:8px;font-weight:900;">'+onlineCount+'</span></div>'+
+      '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;">'+
+        onlineUsers.map(function(u){
+          var a=av(u.avatar);
+          return '<div style="flex:0 0 auto;text-align:center;cursor:pointer;" onclick="openProf(\''+u.id+'\')">'+
+            '<div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,'+a.c+'30,'+a.c+'50);display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;margin:0 auto 4px;">'+a.e+
+              '<div class="online-dot online-pulse" style="position:absolute;bottom:2px;right:2px;width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--bg);"></div>'+
+            '</div>'+
+            '<div style="font-size:10px;font-weight:800;color:var(--muted);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">\uD83C\uDFAD '+u.username+'</div>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  }
+  html+='<div id="postList">'+buildPostsHtml(posts)+'</div>';
   return html;
 }
 
@@ -982,26 +1120,6 @@ var DICE_FACES=['\u2680','\u2681','\u2682','\u2683','\u2684','\u2685'];
 var curQuestion=null,curQType=null;
 
 function pageGame(){
-  // Game chat section - pageGame() içinde ekle
-html+='<div class="game-chat" style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px;">'+
-  '<div style="font-size:13px;font-weight:800;margin-bottom:10px;color:var(--muted);">💬 SOHBET</div>'+
-  '<div id="gameChatBox" style="height:140px;overflow-y:auto;background:var(--card);border-radius:14px;padding:10px;margin-bottom:10px;border:1px solid var(--border);"></div>'+
-  '<div style="display:flex;gap:8px;">'+
-    '<input class="chat-inp" id="gameMsg" placeholder="Mesaj yaz..." style="flex:1;margin:0;border-radius:20px;">'+
-    '<button class="send-btn" onclick="sendGameMsg()" style="width:42px;height:42px;padding:0;">📤</button>'+
-  '</div>'+
-'</div>';
-
-  function sendGameMsg(){
-  var inp=document.getElementById('gameMsg');
-  var msg=inp.value.trim();
-  if(!msg)return;
-  var box=document.getElementById('gameChatBox');
-  box.innerHTML+='<div style="background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:8px 12px;border-radius:12px;margin-bottom:6px;word-wrap:break-word;">'+msg+'</div>';
-  inp.value='';
-  box.scrollTop=box.scrollHeight;
-}
-  
   var frList=friends.filter(function(f){return f.status==='accepted';}).map(function(f){
     var uid=f.sender_id===me.id?f.receiver_id:f.sender_id;
     return users.find(function(u){return u.id===uid;});
@@ -1013,17 +1131,17 @@ html+='<div class="game-chat" style="margin-top:20px;border-top:1px solid var(--
     '<div style="font-size:14px;color:var(--muted);">Arkadasınla oyna, sınırları zorla!</div>'+
   '</div>';
 
-  // Partner select
+  // FRIEND-ONLY GATE
   if(frList.length===0){
-    html+='<div class="game-result"><div style="font-size:40px;margin-bottom:10px;">\uD83D\uDC65</div>'+
-      '<div style="font-weight:800;margin-bottom:6px;">Henuz arkadasın yok</div>'+
-      '<div style="font-size:13px;color:var(--muted);">Ana sayfadan insanları arkadaş olarak ekle, sonra oyun oyna!</div>'+
-      '<button class="btn" style="margin-top:14px;" onclick="goPage(\'home\')">Arkadaslara Git</button>'+
+    html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;text-align:center;margin-bottom:16px;">'+
+      '<div style="font-size:52px;margin-bottom:12px;">\uD83D\uDD12</div>'+
+      '<div style="font-size:18px;font-weight:900;margin-bottom:8px;">Oyun Kilitli</div>'+
+      '<div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Oyun oynamak icin once arkadasin olmali! Ana sayfaya git, birilerine arkadas istegi gonder, kabul edince gel.</div>'+
+      '<button class="btn" onclick="goPage(\'home\')">\uD83D\uDC65 Arkadas Bul</button>'+
     '</div>';
     html+='</div>';
     return html;
   }
-
   // Show partner selector if none selected
   if(!gamePartner){
     html+='<div style="margin-bottom:16px;">'+
@@ -1071,7 +1189,7 @@ html+='<div class="game-chat" style="margin-top:20px;border-top:1px solid var(--
     '<div class="timer-bar"><div class="timer-fill" id="gameTimerFill" style="width:100%;"></div></div>'+
     '<div style="display:flex;gap:8px;margin-bottom:16px;">'+
       '<button class="btn btn-outline btn-sm" style="flex:1;" onclick="pickGameQuestion(\''+curQType+'\')">\uD83D\uDD04 Yeni Soru</button>'+
-      '<button class="btn btn-sm" style="flex:1;" onclick="sendGameMsg()">\uD83D\uDCEC Gonder</button>'+
+      '<button class="btn btn-sm" style="flex:1;" onclick="sendGameQuestion()">\uD83D\uDCEC Gonder</button>'+
     '</div>';
     startGameTimer();
   }
@@ -1087,6 +1205,20 @@ html+='<div class="game-chat" style="margin-top:20px;border-top:1px solid var(--
       return '<div class="suggest-item" onclick="useSuggest(\'dare\',\''+q.replace(/'/g,"\\'")+'\')">\uD83D\uDD34 '+q+'</div>';
     }).join('')+
   '</div>';
+
+  // In-page game chat
+  if(gamePartner){
+    html+='<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">'+
+      '<div style="font-size:12px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">\uD83D\uDCAC Oyun Sohbeti</div>'+
+      '<div id="gameChatBox" style="min-height:80px;max-height:140px;overflow-y:auto;background:var(--bg);border-radius:14px;padding:10px;margin-bottom:10px;border:1px solid var(--border);">'+
+        '<div style="text-align:center;font-size:12px;color:var(--muted);padding:14px;">Oyun sohbeti burada...</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;">'+
+        '<input class="chat-inp" id="gameMsg" placeholder="Mesaj yaz..." style="flex:1;margin:0;">'+
+        '<button class="send-btn" onclick="sendGameMsg()">\u27A4</button>'+
+      '</div>'+
+    '</div>';
+  }
 
   html+='</div>';
   return html;
@@ -1150,7 +1282,15 @@ function startGameTimer(){
   },1000);
 }
 
-async function sendGameMsg(){
+function sendGameMsg(){
+  var inp=document.getElementById('gameMsg');if(!inp)return;
+  var msg=inp.value.trim();if(!msg)return;
+  var box=document.getElementById('gameChatBox');if(!box)return;
+  box.innerHTML+='<div style="display:flex;justify-content:flex-end;margin-bottom:6px;"><div style="background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:8px 12px;border-radius:12px;max-width:80%;word-wrap:break-word;font-size:13px;">'+msg+'</div></div>';
+  inp.value='';box.scrollTop=box.scrollHeight;
+}
+
+async function sendGameQuestion(){
   if(!gamePartner||!curQuestion)return;
   var text=(curQType==='truth'?'\uD83D\uDD35 Dogruluk: ':'\uD83D\uDD34 Cesaret: ')+curQuestion;
   var r=await db.from('messages').insert({sender_id:me.id,receiver_id:gamePartner.uid,content:text,created_at:new Date().toISOString()});
@@ -1180,7 +1320,7 @@ function pageMessages(){
   return '<div class="mlimit">'+
     '<div><div style="font-size:12px;font-weight:700;">'+(lang==='tr'?'Mesaj Hakki':'Message Limit')+'</div>'+
     '<div style="font-size:11px;color:var(--muted);">'+getLimitTime()+'</div></div>'+
-    '<div style="font-size:22px;font-weight:900;color:var(--pink);">'+msgLimit.n+'/20</div>'+
+    '<div style="font-size:22px;font-weight:900;color:var(--pink);">'+msgLimit.n+'/5</div>'+
   '</div>'+chatsHtml;
 }
 
@@ -1223,6 +1363,7 @@ function openChat(uid,username,avatarId){
       '<input type="file" id="photoInp" accept="image/*" style="display:none;" onchange="sendPhoto(this)">'+
       '<div class="icon-btn-sm" onclick="document.getElementById(\'photoInp\').click()">\uD83D\uDCF7</div>'+
       '<input class="chat-inp" id="msgInp" placeholder="'+(lang==='tr'?'Mesaj yaz...':'Type a message...')+'" onkeydown="if(event.key===\'Enter\')sendMsg(\''+uid+'\')">'+
+      '<button class="ice-btn" onclick="sendIcebreaker(\''+uid+'\')" title="Buzkiran Sor">\uD83E\uDDCA</button>'+
       '<button class="send-btn" onclick="sendMsg(\''+uid+'\')">\u27A4</button>'+
     '</div></div>';
 
@@ -1279,13 +1420,28 @@ async function sendPhoto(input){
   reader.readAsDataURL(file);
 }
 
-// MSG LIMIT
+// MSG LIMIT - 5 per 12h, unlimited for premium
+var IS_PREMIUM=false;
 function loadLimit(){
+  IS_PREMIUM=myProf&&myProf.is_premium===true;
+  if(IS_PREMIUM){msgLimit={n:999,resetAt:null};return;}
   var s=localStorage.getItem('tb_lim');
-  if(s){var d=JSON.parse(s);if(d.resetAt&&Date.now()>d.resetAt){msgLimit={n:20,resetAt:null};localStorage.removeItem('tb_lim');}else msgLimit=d;}
+  if(s){var d=JSON.parse(s);if(d.resetAt&&Date.now()>d.resetAt){msgLimit={n:5,resetAt:null};localStorage.removeItem('tb_lim');}else msgLimit=d;}
+  else{msgLimit={n:5,resetAt:null};}
 }
-function decLimit(){msgLimit.n=Math.max(0,msgLimit.n-1);if(msgLimit.n===0)msgLimit.resetAt=Date.now()+30*60*1000;localStorage.setItem('tb_lim',JSON.stringify(msgLimit));}
-function getLimitTime(){if(!msgLimit.resetAt||msgLimit.n>0)return '';var left=msgLimit.resetAt-Date.now();if(left<=0){loadLimit();return '';}return Math.ceil(left/60000)+' dk sonra yenilenir';}
+function decLimit(){
+  if(IS_PREMIUM)return;
+  msgLimit.n=Math.max(0,msgLimit.n-1);
+  if(msgLimit.n===0)msgLimit.resetAt=Date.now()+(12*60*60*1000);
+  localStorage.setItem('tb_lim',JSON.stringify(msgLimit));
+}
+function getLimitTime(){
+  if(IS_PREMIUM)return '\u2728 Premium - Sinirsiz';
+  if(!msgLimit.resetAt||msgLimit.n>0)return '';
+  var left=msgLimit.resetAt-Date.now();if(left<=0){loadLimit();return '';}
+  var h=Math.floor(left/3600000),m=Math.ceil((left%3600000)/60000);
+  return h+'s '+m+'dk sonra yenilenir \u2022 \uD83D\uDC8E Premium ile atla!';
+}
 
 // VOICE CALL
 var _localStream=null;
@@ -1340,49 +1496,41 @@ function endCall(){
 
 // MY PROFILE
 function pageMyProfile(){
-  if(!myProf)return '<div class="empty">Profil yükleniyor...</div>';
-  
+  if(!myProf)return '<div class="empty"><div style="font-size:52px;">\uD83D\uDC64</div></div>';
   var a=av(myProf.avatar);
-  var isAnon=myProf.is_anon;
-  
-  var html='<div style="padding:16px;">';
-  
-  // Banner
-  html+='<div class="prof-banner" style="background:linear-gradient(135deg,'+a.c+'40,'+a.c+'20);border-radius:16px;height:120px;margin-bottom:14px;"></div>';
-  
-  // Avatar + Info
-  html+='<div style="margin-bottom:20px;">';
-  html+='<div style="font-size:48px;margin-bottom:10px;">'+a.e+'</div>';
-  html+='<div style="font-size:20px;font-weight:900;margin-bottom:4px;">'+(isAnon?'🎭 '+myProf.username:'👤 '+myProf.username)+'</div>';
-  html+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">'+myProf.age+' yaşında • '+myProf.city+'</div>';
-  html+='<div style="font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:16px;">'+myProf.bio+'</div>';
-  
-  // İlgi Alanları
-  html+='<div style="margin-bottom:16px;">';
-  html+='<div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px;">İLGİ ALANLARI</div>';
-  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-  (myProf.interests||[]).forEach(function(i){
-    html+='<span class="tag tag-int">'+i+'</span>';
-  });
-  html+='</div></div>';
-  
-  // Stats
-  html+='<div class="prof-stats" style="margin-bottom:20px;">';
-  html+='<div><div class="pstat-n">42</div><div class="pstat-l">Arkadaş</div></div>';
-  html+='<div><div class="pstat-n">128</div><div class="pstat-l">Beğeni</div></div>';
-  html+='<div><div class="pstat-n">18</div><div class="pstat-l">Paylaşım</div></div>';
-  html+='</div>';
-  
-  // Anonim Toggle
-  html+='<button class="btn" onclick="toggleAnon()" style="margin-bottom:10px;width:100%;">'+
-    (isAnon?'👤 Görünür Ol':'🎭 Anonim Ol')+
-  '</button>';
-  
-  html+='<button class="btn btn-outline" onclick="doLogout()">🚪 Çıkış Yap</button>';
-  
-  html+='</div>';
-  
-  return html;
+  var frCount=friends.filter(function(f){return f.status==='accepted';}).length;
+  var postCount=posts.filter(function(p){return p.author_id===me.id;}).length;
+  return '<div>'+
+    '<div class="prof-banner" style="background:linear-gradient(135deg,'+a.c+'40,'+a.c+'15);">'+
+      '<div class="prof-avwrap">'+a.e+'</div>'+
+    '</div>'+
+    '<div class="prof-info">'+
+      '<div style="font-size:21px;font-weight:900;">\uD83C\uDFAD '+(myProf.username||'Anonim')+'</div>'+
+      '<div style="font-size:12px;color:var(--cyan);margin-top:2px;">'+a.name+'</div>'+
+      '<div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;">'+(myProf.bio||'Henuz bio yok.')+'</div>'+
+      '<div class="prof-stats">'+
+        '<div style="text-align:center;"><div class="pstat-n">'+frCount+'</div><div class="pstat-l">'+(lang==='tr'?'Arkadaslar':'Friends')+'</div></div>'+
+        '<div style="text-align:center;"><div class="pstat-n">'+(myProf.age||'—')+'</div><div class="pstat-l">'+(lang==='tr'?'Yas':'Age')+'</div></div>'+
+        '<div style="text-align:center;"><div class="pstat-n">'+(myProf.city||'—')+'</div><div class="pstat-l">'+(lang==='tr'?'Sehir':'City')+'</div></div>'+
+        '<div style="text-align:center;"><div class="pstat-n">'+postCount+'</div><div class="pstat-l">'+(lang==='tr'?'Gonderi':'Posts')+'</div></div>'+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">'+
+        (myProf.interests||[]).map(function(i){return '<div class="int-tag sel">'+i+'</div>';}).join('')+
+      '</div>'+
+      // Badges
+      (userBadges.length?
+        '<div style="margin-bottom:14px;">'+
+          '<div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">\uD83C\uDFC5 Basarilar</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+
+            userBadges.map(function(b){return '<div class="badge '+b.cls+'">'+b.icon+' '+b.label+'</div>';}).join('')+
+          '</div>'+
+        '</div>'
+      :'')+
+      '<div style="display:flex;gap:8px;">'+
+        '<button class="btn" style="flex:1;" onclick="openEditProfile()">\u270F\uFE0F '+(lang==='tr'?'Profili Duzenle':'Edit Profile')+'</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="doLogout()">\uD83D\uDEAA</button>'+
+      '</div>'+
+    '</div></div>';
 }
 
 // USER PROFILE
@@ -1525,6 +1673,11 @@ async function rejFriend(id){
 // SETTINGS
 function pageSettings(){
   return '<div class="set-section">'+
+    '<div style="margin-bottom:14px;background:linear-gradient(135deg,rgba(255,107,157,.1),rgba(168,85,247,.1));border:1px solid rgba(168,85,247,.25);border-radius:18px;padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="openSubscription()">'+
+      '<div style="font-size:34px;">\uD83D\uDC8E</div>'+
+      '<div style="flex:1;"><div style="font-size:15px;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Premium\'a Gec</div><div style="font-size:12px;color:var(--muted);">Sinirsiz mesaj, ozel rozet!</div></div>'+
+      '<div style="font-size:20px;">\u203A</div>'+
+    '</div>'+
     '<div class="set-title">Hesap</div>'+
     '<div class="set-item">'+
       '<div style="display:flex;align-items:center;gap:10px;"><div class="set-icon" style="background:rgba(168,85,247,.15);">\uD83C\uDFAD</div>'+
@@ -1539,6 +1692,15 @@ function pageSettings(){
       '<div style="display:flex;align-items:center;gap:10px;"><div class="set-icon" style="background:rgba(6,182,212,.15);">\uD83C\uDF10</div>'+
       '<div><div class="set-label">Dil / Language</div><div class="set-sub" id="langSettingsSub">'+(lang==='tr'?'Turkce':'English')+'</div></div></div>'+
       '<div style="color:var(--muted);">\u203A</div>'+
+    '</div>'+
+    '<div class="set-item" onclick="toggleNightMode()">'+
+      '<div style="display:flex;align-items:center;gap:10px;"><div class="set-icon" style="background:rgba(99,102,241,.15);">'+
+        (document.body.classList.contains('night-mode')?'\uD83C\uDF19':'\u2600\uFE0F')+
+      '</div>'+
+      '<div><div class="set-label">Tema</div><div class="set-sub">'+
+        (document.body.classList.contains('night-mode')?'Gece Modu':'Gunduz Modu')+
+      '</div></div></div>'+
+      '<div class="toggle '+(document.body.classList.contains('night-mode')?'on':'')+'"></div>'+
     '</div>'+
     '<div class="set-item" onclick="toggleAnon()">'+
       '<div style="display:flex;align-items:center;gap:10px;"><div class="set-icon" style="background:rgba(168,85,247,.15);">\uD83C\uDFAD</div>'+
@@ -1681,6 +1843,172 @@ db.auth.onAuthStateChange(async function(event,session){
   }
   if(event==='SIGNED_OUT'){me=null;myProf=null;show('authScreen');}
 });
+
+// SEARCH & FILTER
+var discFilter_location=null,discFilter_interest=null;
+function liveSearch(){
+  var q=(document.getElementById('discSearch')||{value:''}).value.toLowerCase().trim();
+  var filtered=posts.slice();
+  if(q)filtered=filtered.filter(function(p){
+    return (p.content&&p.content.toLowerCase().includes(q))||(p.author&&p.author.username&&p.author.username.toLowerCase().includes(q));
+  });
+  if(discFilter_location)filtered=filtered.filter(function(p){return p.author&&p.author.city===discFilter_location;});
+  if(discFilter_interest)filtered=filtered.filter(function(p){return p.author&&p.author.interests&&p.author.interests.indexOf(discFilter_interest)>=0;});
+  var list=document.getElementById('postList');if(list)list.innerHTML=buildPostsHtml(filtered);
+}
+function filterByLocation(val){
+  discFilter_location=(val&&val.indexOf('Tum')<0&&val.indexOf('\uD83D\uDCCD')<0)?val:null;liveSearch();
+}
+function filterByInterest(val){
+  discFilter_interest=(val&&val.indexOf('Tum')<0&&val.indexOf('\u2B50')<0)?val:null;liveSearch();
+}
+
+// INSTAGRAM
+// ICEBREAKER
+function sendIcebreaker(uid){
+  var q=ICEBREAKERS[Math.floor(Math.random()*ICEBREAKERS.length)];
+  var inp=document.getElementById('msgInp');
+  if(inp){inp.value='\uD83E\uDDCA '+q;inp.focus();}
+  else toast('\uD83E\uDDCA '+q, 4000);
+}
+
+// SPEED DATE - 10 sec voice intro
+var sdActive=false,sdTimer=null,sdSec=0;
+function openSpeedDate(uid,username,avatarId){
+  var a=av(avatarId);
+  showModal(
+    '<div class="speed-card" style="margin:0 0 16px;">'+
+      '<div class="sd-ring">'+a.e+'</div>'+
+      '<div style="font-size:17px;font-weight:900;margin-bottom:4px;">\uD83C\uDFAD '+username+'</div>'+
+      '<div style="font-size:13px;color:var(--muted);">10 saniyelik sesli tanisma!</div>'+
+    '</div>'+
+    '<div style="text-align:center;margin-bottom:16px;">'+
+      '<div style="font-size:48px;font-weight:900;color:var(--pink);" id="sdTimerDisp">10</div>'+
+      '<div style="font-size:12px;color:var(--muted);">saniye</div>'+
+    '</div>'+
+    '<div style="background:var(--bg);border-radius:14px;padding:12px;margin-bottom:14px;font-size:13px;color:var(--muted);text-align:center;">'+
+      '\uD83D\uDCA1 Konusma baslangici: "'+ICEBREAKERS[Math.floor(Math.random()*ICEBREAKERS.length)]+'"'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;">'+
+      '<button class="btn" style="flex:1;" id="sdStartBtn" onclick="startSpeedDate(\'' +uid+ '\')">' +
+        '\uD83C\uDF99 Baslat</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="endSpeedDate()">\uD83D\uDCF5 Bitir</button>'+
+    '</div>',
+  '\u26A1 Hizli Tanisma');
+}
+
+async function startSpeedDate(uid){
+  var btn=document.getElementById('sdStartBtn');
+  if(btn){btn.disabled=true;btn.textContent='\uD83C\uDF99 Baglaniyor...';}
+  try{
+    var stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    window._sdStream=stream;
+    sdSec=10;
+    var disp=document.getElementById('sdTimerDisp');
+    sdTimer=setInterval(function(){
+      sdSec--;
+      if(disp)disp.textContent=sdSec;
+      if(disp)disp.style.color=sdSec<=3?'var(--red)':'var(--pink)';
+      if(sdSec<=0){
+        endSpeedDate();
+        toast('\u23F1 Sure doldu! Devam etmek icin mesaj gonder.');
+      }
+    },1000);
+    if(btn){btn.textContent='\uD83D\uDD34 Kayit oluyor...';}
+  }catch(e){
+    toast('\u274C Mikrofon izni gerekli!');
+  }
+}
+
+function endSpeedDate(){
+  if(sdTimer){clearInterval(sdTimer);sdTimer=null;}
+  if(window._sdStream){window._sdStream.getTracks().forEach(function(t){t.stop();});window._sdStream=null;}
+  closeModal();
+}
+
+// GAMIFICATION: badges in discover (show user badges)
+function getBadgesHtml(userId){
+  if(userId===me.id) return userBadges.map(function(b){return '<div class="badge '+b.cls+'">'+b.icon+'</div>';}).join('');
+  // for other users show simulated badge
+  var seed=userId.charCodeAt(0)||65;
+  var fakeB=[];
+  if(seed%3===0) fakeB.push('<div class="badge badge-pink">\uD83D\uDD25 Aktif</div>');
+  if(seed%5===0) fakeB.push('<div class="badge badge-gold">\uD83D\uDC51</div>');
+  return fakeB.join('');
+}
+
+
+function openInstagram(){window.open('https://www.instagram.com/tanisbulonline/','_blank');}
+
+// SUBSCRIPTION / PREMIUM
+var selectedPlan='yearly';
+function openSubscription(){
+  showModal(
+    '<div style="text-align:center;margin-bottom:18px;">'+
+      '<div style="font-size:46px;margin-bottom:8px;">\uD83D\uDC8E</div>'+
+      '<div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">TanishBul Premium</div>'+
+      '<div style="font-size:13px;color:var(--muted);margin-top:4px;">Sinirlamalari kaldir, ozgurce konus!</div>'+
+    '</div>'+
+    '<div style="background:var(--bg);border-radius:16px;padding:14px;margin-bottom:14px;">'+
+      [['\uD83D\uDCAC','Sinirsiz Mesaj','12 saatte 5 degil, her gun sinirsiz!'],
+       ['\uD83D\uDC8E','Premium Rozet','Profilinde altin rozet gozuksun'],
+       ['\uD83C\uDF99','Sesli Gorusme','Sesli baglanti ozelligine erisim'],
+       ['\uD83D\uDD0D','Profili Kim Gordu','Ziyaretcilerini gor']].map(function(row,i){
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;'+(i<3?'border-bottom:1px solid var(--border);':'')+'">'+
+          '<span style="font-size:20px;">'+row[0]+'</span>'+
+          '<div><div style="font-size:13px;font-weight:800;">'+row[1]+'</div><div style="font-size:11px;color:var(--muted);">'+row[2]+'</div></div>'+
+          '<span style="margin-left:auto;color:var(--green);font-weight:900;">\u2714</span></div>';
+      }).join('')+
+    '</div>'+
+    '<div style="display:flex;gap:10px;margin-bottom:14px;">'+
+      '<div style="flex:1;background:var(--card);border:2px solid var(--border);border-radius:16px;padding:14px;text-align:center;cursor:pointer;" onclick="selectPlan(this,\'monthly\')" id="plan-monthly">'+
+        '<div style="font-size:11px;color:var(--muted);font-weight:800;">AYLIK</div>'+
+        '<div style="font-size:24px;font-weight:900;margin:6px 0;">29\u20BA</div>'+
+        '<div style="font-size:11px;color:var(--muted);">/ ay</div>'+
+      '</div>'+
+      '<div style="flex:1;background:var(--card);border:2px solid var(--pink);border-radius:16px;padding:14px;text-align:center;cursor:pointer;position:relative;" onclick="selectPlan(this,\'yearly\')" id="plan-yearly">'+
+        '<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--pink),var(--purple));color:white;font-size:10px;font-weight:900;padding:3px 10px;border-radius:10px;">EN IYI</div>'+
+        '<div style="font-size:11px;color:var(--muted);font-weight:800;">YILLIK</div>'+
+        '<div style="font-size:24px;font-weight:900;margin:6px 0;">199\u20BA</div>'+
+        '<div style="font-size:11px;color:var(--green);font-weight:700;">%43 tasarruf</div>'+
+      '</div>'+
+    '</div>'+
+    '<button class="btn" onclick="startPayment()">\uD83D\uDC8E Premium\'a Gec</button>'+
+    '<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--muted);">Guvenli odeme \u2022 Istedigin zaman iptal</div>',
+  '\uD83D\uDC8E TanishBul Premium');
+}
+function selectPlan(el,plan){
+  selectedPlan=plan;
+  var pm=document.getElementById('plan-monthly');var py=document.getElementById('plan-yearly');
+  if(pm)pm.style.borderColor='var(--border)';if(py)py.style.borderColor='var(--border)';
+  if(el)el.style.borderColor='var(--pink)';
+}
+function startPayment(){
+  closeModal();
+  setTimeout(function(){
+    showModal(
+      '<div style="text-align:center;">'+
+        '<div style="font-size:40px;margin-bottom:10px;">\uD83D\uDCB3</div>'+
+        '<div style="font-size:16px;font-weight:900;margin-bottom:14px;">Odeme Bilgileri</div>'+
+        '<div style="background:var(--bg);border-radius:14px;padding:14px;margin-bottom:10px;text-align:left;">'+
+          '<div style="font-size:11px;color:var(--muted);font-weight:800;margin-bottom:6px;">SECILEN PLAN</div>'+
+          '<div style="font-size:15px;font-weight:900;">'+(selectedPlan==='monthly'?'Aylik \u2014 29\u20BA':'Yillik \u2014 199\u20BA')+'</div>'+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:14px;padding:14px;margin-bottom:10px;text-align:left;">'+
+          '<div style="font-size:11px;color:var(--muted);font-weight:800;margin-bottom:8px;">HAVALE / EFT</div>'+
+          '<div style="font-size:13px;margin-bottom:5px;">\uD83C\uDFE6 Banka: <b>Ziraat Bankasi</b></div>'+
+          '<div style="font-size:13px;margin-bottom:5px;word-break:break-all;">\uD83D\uDCCC IBAN: <b>TR12 0001 0012 3456 7890 1234 56</b></div>'+
+          '<div style="font-size:13px;margin-bottom:5px;">\uD83D\uDC64 Alici: <b>TanishBul Yazilim</b></div>'+
+          '<div style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:10px;padding:8px;margin-top:8px;font-size:12px;color:var(--orange);">\u26A0\uFE0F Aciklama kismina kullanici adinizi yazin!</div>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Odeme sonrasi <b>destek@tanisbul.online</b> adresine dekont gonderin. 24s icinde aktif edilir.</div>'+
+        '<a href="https://www.instagram.com/tanisbulonline/" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#E1306C,#833AB4);color:white;padding:12px;border-radius:14px;text-decoration:none;font-weight:800;font-size:14px;margin-bottom:8px;">\uD83D\uDCF8 Instagram\'dan da ulasabilirsin</a>'+
+        '<button class="btn btn-outline" onclick="closeModal()">Kapat</button>'+
+      '</div>',
+    '\uD83D\uDCB3 Odeme Detaylari');
+  },150);
+}
+
 
 init();
 </script>

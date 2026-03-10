@@ -396,6 +396,16 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <script>
+  // AUTH SCREEN'DEN SONRA HEMEN BAŞINDA BU EKLE:
+window.addEventListener('load',async function(){
+  var session=await db.auth.getSession();
+  if(session.data.session){
+    me=session.data.session.user;
+    await loadMyProf();
+    if(myProf) startApp();
+    else show('rulesScreen');
+  }
+});
 const SB_URL='https://snbqilkkysxmzmjfsihf.supabase.co';
 const SB_KEY='sb_publishable_HJ2nnuGyTszm7q_2y40KDQ_GZrSUenq';
 const db=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'tanisbul_session'}});
@@ -840,33 +850,65 @@ function toggleLocFilter(){locFilter=!locFilter;render(curPage);}
 // DISCOVER PAGE
 function pageDiscover(){
   var myA=av(myProf?myProf.avatar:'wolf');
-  return '<div class="disc-write">'+
+  var html='';
+  
+  // Arama
+  html+='<div style="padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);">'+
+    '<input class="inp" id="discSearch" placeholder="🔍 Ara (#hashtag veya @kullanıcı)..." '+
+    'style="margin-bottom:10px;" oninput="liveSearch()">'+
+    '<div style="display:flex;gap:8px;overflow-x:auto;">'+
+      '<select onchange="filterByLocation(this.value)" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;">'+
+        '<option>📍 Tüm Şehirler</option>'+
+        '<option>Ankara</option>'+
+        '<option>İstanbul</option>'+
+        '<option>İzmir</option>'+
+        '<option>Bursa</option>'+
+        '<option>Antalya</option>'+
+      '</select>'+
+      '<select onchange="filterByInterest(this.value)" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;">'+
+        '<option>⭐ Tüm İlgi Alanları</option>'+
+        INTS.map(function(i){return '<option>'+i+'</option>';}).join('')+
+      '</select>'+
+    '</div>'+
+  '</div>';
+  
+  // Trending
+  html+='<div style="padding:14px 18px;border-bottom:1px solid var(--border);">'+
+    '<div style="font-size:13px;font-weight:900;color:var(--muted);margin-bottom:10px;">🔥 TREND KONULAR</div>';
+  
+  var trends=['#Ankara','#Istanbul','#Oyun','#Muzik','#Seyahat','#Spor','#Sanat','#Film'];
+  trends.forEach(function(t,i){
+    html+='<div style="padding:8px;cursor:pointer;border-radius:10px;margin-bottom:6px;transition:all .2s;background:var(--card);border:1px solid var(--border);display:flex;justify-content:space-between;" '+
+      'onmouseover="this.style.background=\'rgba(255,107,157,.1)\'" '+
+      'onmouseout="this.style.background=\'var(--card)\'" '+
+      'onclick="setDiscInp(\''+t+'\')">';
+    html+='<span style="font-weight:800;color:var(--pink);">'+t+'</span>'+
+      '<span style="font-size:11px;color:var(--muted);">'+(Math.floor(Math.random()*500)+50)+' gonderi</span>'+
+    '</div>';
+  });
+  html+='</div>';
+  
+  // Yazı Kutusu
+  html+='<div class="disc-write">'+
     '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">'+
       '<div class="disc-write-av">'+myA.e+'</div>'+
-      '<textarea class="disc-textarea" id="discInp" placeholder="'+(lang==='tr'?'Ne dusunuyorsun?':'What\'s on your mind?')+'"></textarea>'+
+      '<textarea class="disc-textarea" id="discInp" placeholder="Ne düşünüyorsun?"></textarea>'+
     '</div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:10px;">'+
-      '<span style="font-size:12px;color:var(--muted);">\uD83C\uDFAD Anonim paylasilir</span>'+
-      '<button class="btn btn-sm" onclick="submitPost()">'+(lang==='tr'?'Paylas \uD83D\uDE80':'Post \uD83D\uDE80')+'</button>'+
-    '</div></div>'+
-
-  '<div class="trending-card">'+
-    '<div style="font-size:13px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">\uD83D\uDD25 Trend</div>'+
-    ['#Ankara','#Istanbul','#Oyun','#Muzik','#Film'].map(function(t,i){
-      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="setDiscInp(\''+t+'\')">'+
-        '<div style="font-size:13px;font-weight:900;color:var(--pink);width:20px;">'+(i+1)+'</div>'+
-        '<div style="font-size:13px;font-weight:700;">'+t+'</div>'+
-        '<div style="margin-left:auto;font-size:11px;color:var(--muted);">'+(Math.floor(Math.random()*200)+20)+' gonderi</div>'+
-      '</div>';
-    }).join('')+
-  '</div>'+
-
-  '<div style="padding:4px 18px 10px;display:flex;gap:6px;overflow-x:auto;">'+
-    '<button class="disc-filter active" id="df-all" onclick="filterPosts(\'all\',this)">Tumu</button>'+
-    '<button class="disc-filter" id="df-hot" onclick="filterPosts(\'hot\',this)">\uD83D\uDD25 Populer</button>'+
-    '<button class="disc-filter" id="df-new" onclick="filterPosts(\'new\',this)">\u2728 Yeni</button>'+
+      '<span style="font-size:12px;color:var(--muted);">🎭 Anonim paylaşılır</span>'+
+      '<button class="btn btn-sm" onclick="submitPost()">Paylaş 🚀</button>'+
+    '</div>'+
+  '</div>';
+  
+  // Filterli Postlar
+  html+='<div style="padding:4px 18px 10px;display:flex;gap:6px;overflow-x:auto;">'+
+    '<button class="disc-filter active" id="df-all" onclick="filterPosts(\'all\',this)">Tümü</button>'+
+    '<button class="disc-filter" id="df-hot" onclick="filterPosts(\'hot\',this)">🔥 Populer</button>'+
+    '<button class="disc-filter" id="df-new" onclick="filterPosts(\'new\',this)">✨ Yeni</button>'+
   '</div>'+
   '<div id="postList">'+buildPostsHtml(posts)+'</div>';
+  
+  return html;
 }
 
 function setDiscInp(v){
@@ -940,6 +982,26 @@ var DICE_FACES=['\u2680','\u2681','\u2682','\u2683','\u2684','\u2685'];
 var curQuestion=null,curQType=null;
 
 function pageGame(){
+  // Game chat section - pageGame() içinde ekle
+html+='<div class="game-chat" style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px;">'+
+  '<div style="font-size:13px;font-weight:800;margin-bottom:10px;color:var(--muted);">💬 SOHBET</div>'+
+  '<div id="gameChatBox" style="height:140px;overflow-y:auto;background:var(--card);border-radius:14px;padding:10px;margin-bottom:10px;border:1px solid var(--border);"></div>'+
+  '<div style="display:flex;gap:8px;">'+
+    '<input class="chat-inp" id="gameMsg" placeholder="Mesaj yaz..." style="flex:1;margin:0;border-radius:20px;">'+
+    '<button class="send-btn" onclick="sendGameMsg()" style="width:42px;height:42px;padding:0;">📤</button>'+
+  '</div>'+
+'</div>';
+
+  function sendGameMsg(){
+  var inp=document.getElementById('gameMsg');
+  var msg=inp.value.trim();
+  if(!msg)return;
+  var box=document.getElementById('gameChatBox');
+  box.innerHTML+='<div style="background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:8px 12px;border-radius:12px;margin-bottom:6px;word-wrap:break-word;">'+msg+'</div>';
+  inp.value='';
+  box.scrollTop=box.scrollHeight;
+}
+  
   var frList=friends.filter(function(f){return f.status==='accepted';}).map(function(f){
     var uid=f.sender_id===me.id?f.receiver_id:f.sender_id;
     return users.find(function(u){return u.id===uid;});
@@ -1278,32 +1340,49 @@ function endCall(){
 
 // MY PROFILE
 function pageMyProfile(){
-  if(!myProf)return '<div class="empty"><div style="font-size:52px;">\uD83D\uDC64</div></div>';
+  if(!myProf)return '<div class="empty">Profil yükleniyor...</div>';
+  
   var a=av(myProf.avatar);
-  var frCount=friends.filter(function(f){return f.status==='accepted';}).length;
-  var postCount=posts.filter(function(p){return p.author_id===me.id;}).length;
-  return '<div>'+
-    '<div class="prof-banner" style="background:linear-gradient(135deg,'+a.c+'40,'+a.c+'15);">'+
-      '<div class="prof-avwrap">'+a.e+'</div>'+
-    '</div>'+
-    '<div class="prof-info">'+
-      '<div style="font-size:21px;font-weight:900;">\uD83C\uDFAD '+(myProf.username||'Anonim')+'</div>'+
-      '<div style="font-size:12px;color:var(--cyan);margin-top:2px;">'+a.name+'</div>'+
-      '<div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;">'+(myProf.bio||'Henuz bio yok.')+'</div>'+
-      '<div class="prof-stats">'+
-        '<div style="text-align:center;"><div class="pstat-n">'+frCount+'</div><div class="pstat-l">'+(lang==='tr'?'Arkadaslar':'Friends')+'</div></div>'+
-        '<div style="text-align:center;"><div class="pstat-n">'+(myProf.age||'—')+'</div><div class="pstat-l">'+(lang==='tr'?'Yas':'Age')+'</div></div>'+
-        '<div style="text-align:center;"><div class="pstat-n">'+(myProf.city||'—')+'</div><div class="pstat-l">'+(lang==='tr'?'Sehir':'City')+'</div></div>'+
-        '<div style="text-align:center;"><div class="pstat-n">'+postCount+'</div><div class="pstat-l">'+(lang==='tr'?'Gonderi':'Posts')+'</div></div>'+
-      '</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">'+
-        (myProf.interests||[]).map(function(i){return '<div class="int-tag sel">'+i+'</div>';}).join('')+
-      '</div>'+
-      '<div style="display:flex;gap:8px;">'+
-        '<button class="btn" style="flex:1;" onclick="openEditProfile()">\u270F\uFE0F '+(lang==='tr'?'Profili Duzenle':'Edit Profile')+'</button>'+
-        '<button class="btn btn-outline btn-sm" onclick="doLogout()">\uD83D\uDEAA</button>'+
-      '</div>'+
-    '</div></div>';
+  var isAnon=myProf.is_anon;
+  
+  var html='<div style="padding:16px;">';
+  
+  // Banner
+  html+='<div class="prof-banner" style="background:linear-gradient(135deg,'+a.c+'40,'+a.c+'20);border-radius:16px;height:120px;margin-bottom:14px;"></div>';
+  
+  // Avatar + Info
+  html+='<div style="margin-bottom:20px;">';
+  html+='<div style="font-size:48px;margin-bottom:10px;">'+a.e+'</div>';
+  html+='<div style="font-size:20px;font-weight:900;margin-bottom:4px;">'+(isAnon?'🎭 '+myProf.username:'👤 '+myProf.username)+'</div>';
+  html+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">'+myProf.age+' yaşında • '+myProf.city+'</div>';
+  html+='<div style="font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:16px;">'+myProf.bio+'</div>';
+  
+  // İlgi Alanları
+  html+='<div style="margin-bottom:16px;">';
+  html+='<div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px;">İLGİ ALANLARI</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  (myProf.interests||[]).forEach(function(i){
+    html+='<span class="tag tag-int">'+i+'</span>';
+  });
+  html+='</div></div>';
+  
+  // Stats
+  html+='<div class="prof-stats" style="margin-bottom:20px;">';
+  html+='<div><div class="pstat-n">42</div><div class="pstat-l">Arkadaş</div></div>';
+  html+='<div><div class="pstat-n">128</div><div class="pstat-l">Beğeni</div></div>';
+  html+='<div><div class="pstat-n">18</div><div class="pstat-l">Paylaşım</div></div>';
+  html+='</div>';
+  
+  // Anonim Toggle
+  html+='<button class="btn" onclick="toggleAnon()" style="margin-bottom:10px;width:100%;">'+
+    (isAnon?'👤 Görünür Ol':'🎭 Anonim Ol')+
+  '</button>';
+  
+  html+='<button class="btn btn-outline" onclick="doLogout()">🚪 Çıkış Yap</button>';
+  
+  html+='</div>';
+  
+  return html;
 }
 
 // USER PROFILE

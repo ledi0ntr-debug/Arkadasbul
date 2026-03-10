@@ -461,7 +461,24 @@ function show(id){
 }
 
 // -- LANG --
-function toggleLang(){lang=lang==='tr'?'en':'tr';document.getElementById('langBtn').textContent=lang==='tr'?'English':'T\u00FCrk\u00E7e';toast(lang==='tr'?'\uD83C\uDF10 T\u00FCrk\u00E7e':'\uD83C\uDF10 English');}
+function toggleLang(){
+  lang=lang==='tr'?'en':'tr';
+  var lbl=lang==='tr'?'English':'T\u00FCrk\u00E7e';
+  var lb=document.getElementById('langBtn'); if(lb) lb.textContent=lbl;
+  toast(lang==='tr'?'\uD83C\uDF10 T\u00FCrk\u00E7e':'\uD83C\uDF10 English');
+  render(curPage);
+}
+
+async function toggleAnon(){
+  if(!myProf) return;
+  var newAnon=!myProf.is_anon;
+  var res=await db.from('profiles').update({is_anon:newAnon}).eq('id',me.id);
+  if(res.error){toast('\u274C '+res.error.message);return;}
+  myProf.is_anon=newAnon;
+  var badge=document.getElementById('anonBadge');
+  if(badge) badge.textContent=newAnon?'\uD83C\uDFAD Anonim':'\uD83D\uDC64 G\u00F6r\u00FCn\u00FCr';
+  toast(newAnon?'\uD83C\uDFAD Anonim mod aktif!':'\uD83D\uDC64 Profil g\u00F6r\u00FCn\u00FCr!');
+}
 
 // -- AUTH --
 let authMode='login';
@@ -650,7 +667,7 @@ function pageHome(){
   // Location + filter row
   html+='<div style="padding:0 18px 12px;display:flex;align-items:center;gap:8px;">'+
     '<div class="loc-badge '+(locFilter?'on':'')+'" onclick="toggleLocFilter()">\uD83D\uDCCD '+(myLoc?.city||'Konum al...')+'</div>'+
-    '<div class="anon-badge">\uD83C\uDFAD Anonim</div>'+
+    '<div class="anon-badge" onclick="toggleAnon()" style="cursor:pointer;" id="anonBadge">'+(myProf&&myProf.is_anon?'\uD83C\uDFAD Anonim':'\uD83D\uDC64 G\u00F6r\u00FCn\u00FCr')+'</div>'+
     '</div>';
 
   // Ad
@@ -849,7 +866,7 @@ function openChat(uid,username,avatarId){
   const topClass=isMob?'':'';
   const html='<div class="chatview">'+
     '<div class="chat-hdr">'+
-      '<div class="back-btn" onclick="'+(isMob?'goPage(\'messages\')':'deskPage(\'messages\',document.getElementById(\'si-messages\'))')+'">'+(isMob?'\u2039':'\u2039')+'</div>'+
+      '<div class="back-btn" onclick="backToMessages()">'+(isMob?'\u2039':'\u2039')+'</div>'+
       '<div style="font-size:28px;margin:0 4px;">'+a.e+'</div>'+
       '<div style="flex:1;"><div style="font-size:15px;font-weight:800;">\uD83C\uDFAD '+username+'</div><div style="font-size:12px;color:var(--green);">\u25CF \u00C7evrimi\u00E7i</div></div>'+
       '<div class="icon-btn-sm" onclick="openGame(\''+uid+'\',\''+username+'\',\''+avatarId+'\')" title="Oyun oyna">\uD83C\uDFB2</div>'+
@@ -865,6 +882,22 @@ function openChat(uid,username,avatarId){
 
   const cont=isMob?document.getElementById('mobContent'):document.getElementById('deskContent');
   if(cont){cont.innerHTML=html;const m=document.getElementById('chatMsgs');if(m)m.scrollTop=m.scrollHeight;}
+}
+
+function backToMessages(){
+  chatWith=null;
+  var isMob=window.innerWidth<768;
+  if(isMob){
+    curPage='messages';
+    document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
+    var ni=document.getElementById('ni-messages'); if(ni) ni.classList.add('active');
+    var el=document.getElementById('mobContent'); if(el) el.innerHTML=pageMessages();
+  } else {
+    curPage='messages';
+    document.querySelectorAll('.sni').forEach(function(n){n.classList.remove('active');});
+    var si=document.getElementById('si-messages'); if(si) si.classList.add('active');
+    var el2=document.getElementById('deskContent'); if(el2) el2.innerHTML=pageMessages();
+  }
 }
 
 async function sendMsg(toId){
@@ -1026,19 +1059,64 @@ async function sendGameQuestion(toId, qtype, question){
 }
 
 // -- VOICE --
-function openVoice(uid, username, avatarId){
+// -- WEBRTC STATE --
+var _rtcPeer=null, _localStream=null, _voiceUid=null;
+
+async function openVoice(uid, username, avatarId){
+  _voiceUid=uid;
   const a=av(avatarId);
-  showModal('<div style="text-align:center;padding:16px 0;">'+
-    '<div style="font-size:60px;margin-bottom:12px;">'+a.e+'</div>'+
-    '<div style="font-size:17px;font-weight:900;">\uD83C\uDFAD '+username+'</div>'+
-    '<div style="font-size:12px;color:var(--green);margin-top:4px;">\u25CF Sesli g\u00F6r\u00FC\u015Fme</div>'+
-    '<div class="vwaves"><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div></div>'+
-    '<div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">'+
-      '<button style="width:56px;height:56px;border-radius:18px;border:1.5px solid var(--border);background:var(--card);font-size:22px;cursor:pointer;" onclick="toast(\'\uD83D\uDD07 Mikrofon kapat\u0131ld\u0131\')">\uD83D\uDD07</button>'+
-      '<button style="width:56px;height:56px;border-radius:18px;border:none;background:var(--red);font-size:22px;cursor:pointer;color:white;" onclick="closeModal();toast(\'\uD83D\uDCF5 G\u00F6r\u00FC\u015Fme bitti\')">\uD83D\uDCF5</button>'+
-    '</div>'+
-    '<div style="font-size:11px;color:var(--muted);margin-top:14px;">\u26A0\uFE0F Sesli sohbet yak\u0131nda aktif olacak</div>'+
-  '</div>','\uD83C\uDF99\uFE0F Sesli G\u00F6r\u00FC\u015Fme');
+  showModal(
+    '<div style="text-align:center;padding:16px 0;" id="voiceModal">'+
+      '<div style="font-size:60px;margin-bottom:12px;">'+a.e+'</div>'+
+      '<div style="font-size:17px;font-weight:900;">\uD83C\uDFAD '+username+'</div>'+
+      '<div style="font-size:12px;color:var(--cyan);margin-top:4px;" id="voiceStatus">Baglaniyor...</div>'+
+      '<div class="vwaves" id="voiceWaves"><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div></div>'+
+      '<div id="voiceTimer" style="font-size:24px;font-weight:900;color:var(--green);margin:8px 0;">00:00</div>'+
+      '<div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">'+
+        '<button id="muteBtn" style="width:56px;height:56px;border-radius:18px;border:1.5px solid var(--border);background:var(--card);font-size:22px;cursor:pointer;" onclick="toggleMic()">\uD83C\uDF99</button>'+
+        '<button style="width:56px;height:56px;border-radius:18px;border:none;background:var(--red);font-size:22px;cursor:pointer;color:white;" onclick="endCall()">\uD83D\uDCF5</button>'+
+      '</div>'+
+    '</div>',
+    '\uD83C\uDF99 Sesli Gorusme'
+  );
+  // Start call
+  try {
+    _localStream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
+    const status=document.getElementById('voiceStatus');
+    if(status) status.textContent='\u25CF Baglandi';
+    // Start timer
+    let sec=0;
+    window._voiceTimer=setInterval(()=>{
+      sec++;
+      const mm=String(Math.floor(sec/60)).padStart(2,'0');
+      const ss=String(sec%60).padStart(2,'0');
+      const el=document.getElementById('voiceTimer');
+      if(el) el.textContent=mm+':'+ss;
+      else clearInterval(window._voiceTimer);
+    },1000);
+  } catch(e) {
+    const status=document.getElementById('voiceStatus');
+    if(status) status.textContent='\u274C Mikrofon izni gerekli!';
+    if(status) status.style.color='var(--red)';
+  }
+}
+
+function toggleMic(){
+  if(!_localStream) return;
+  const track=_localStream.getAudioTracks()[0];
+  if(!track) return;
+  track.enabled=!track.enabled;
+  const btn=document.getElementById('muteBtn');
+  if(btn) btn.textContent=track.enabled?'\uD83C\uDF99':'\uD83D\uDD07';
+  toast(track.enabled?'\uD83C\uDF99 Mikrofon acik':'\uD83D\uDD07 Mikrofon kapali');
+}
+
+function endCall(){
+  if(_localStream){ _localStream.getTracks().forEach(t=>t.stop()); _localStream=null; }
+  if(window._voiceTimer){ clearInterval(window._voiceTimer); window._voiceTimer=null; }
+  _rtcPeer=null; _voiceUid=null;
+  closeModal();
+  toast('\uD83D\uDCF5 Gorusme bitti');
 }
 
 // -- MSG LIMIT --

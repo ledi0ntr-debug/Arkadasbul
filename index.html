@@ -302,7 +302,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </style>
 </head>
 <body>
-<div id="loadingOverlay" style="position:fixed;inset:0;background:#0f0f1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;"><div style="font-size:52px;margin-bottom:16px;animation:pulse 1.5s infinite;">\uD83C\uDFAD</div><div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,#ff6b9d,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Tani\u015fBul</div><div style="font-size:13px;color:#6b7280;margin-top:8px;">Yukleniyor...</div></div>
+<div id="loadingOverlay" style="position:fixed;inset:0;background:#0f0f1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;"><div style="font-size:52px;margin-bottom:16px;">🎭</div><div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,#ff6b9d,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">TanişBul</div><div style="font-size:13px;color:#6b7280;margin-top:8px;">Yükleniyor...</div></div>
 
 <div class="toast" id="toast"></div>
 <div id="modalContainer"></div>
@@ -1901,50 +1901,28 @@ function ago(dateStr){
   if(m<1)return 'Az once';if(m<60)return m+'dk';if(h<24)return h+'sa';return d+'g';
 }
 
-// INIT - Supabase v2 correct session restore
+// INIT - clean Supabase v2 session restore
 var initDone=false;
 async function init(){
-  // Supabase v2: onAuthStateChange fires synchronously on page load
-  // with INITIAL_SESSION event if token exists in localStorage.
-  // We give it 800ms to fire before falling back to getSession.
-  var resolved=false;
-  var timeoutId=setTimeout(async function(){
-    if(resolved)return;
-    resolved=true;
-    try{
-      var r=await db.auth.getSession();
-      var s=(r.data&&r.data.session)?r.data.session:null;
-      if(s&&s.user&&!initDone){
-        initDone=true;
-        me=s.user;
-        await loadMyProf();
-        if(!myProf){show('setupScreen');renderSetup();}
-        else startApp();
-      }else if(!initDone){
-        initDone=true;
-        show('authScreen');
-      }
-    }catch(e){if(!initDone){initDone=true;show('authScreen');}}
-  },800);
-  // Also try immediately
+  // Try getSession immediately - this reads localStorage token
   try{
-    var r2=await db.auth.getSession();
-    var s2=(r2.data&&r2.data.session)?r2.data.session:null;
-    if(s2&&s2.user&&!resolved&&!initDone){
-      resolved=true;
-      clearTimeout(timeoutId);
+    var r=await db.auth.getSession();
+    var s=(r.data&&r.data.session)?r.data.session:null;
+    if(s&&s.user){
       initDone=true;
-      me=s2.user;
+      me=s.user;
       await loadMyProf();
       if(!myProf){hideLoading();show('setupScreen');renderSetup();}
       else startApp();
-    }else if(!s2&&!resolved&&!initDone){
-      resolved=true;
-      clearTimeout(timeoutId);
+    }else{
       initDone=true;
       show('authScreen');hideLoading();
     }
-  }catch(e){}
+  }catch(e){
+    console.error('Init error:',e);
+    initDone=true;
+    show('authScreen');hideLoading();
+  }
 }
 
 db.auth.onAuthStateChange(async function(event,session){

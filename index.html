@@ -437,6 +437,7 @@ let me=null,myProf=null;
 let users=[],friends=[],msgs=[],notifs=[],posts=[];
 let myLoc=null,locFilter=false;
 let msgLimit={n:5,resetAt:null};
+var msgLimitTarget=null;
 let curPage='home',chatWith=null;
 let selAvVar=null,selGenderVar=null,selIntsVar=[];
 let lang='tr';
@@ -486,28 +487,38 @@ const ICEBREAKERS=[
 ];
 
 const TRUTH_QS=[
-  'En son ne zaman yalan soyledin?',
-  'Gizlice kime asik oldun?',
-  'Hayatinda en cok pisman oldugun sey ne?',
-  'Hic kimseye anlatmadigin en buyuk sirrin ne?',
-  'Ilk opucugun nasil gerceklesti?',
-  'Seni en cok hangi tip insan ceker?',
-  'Hic birine gizlice mesaj attiktan pismanlık duydun mu?',
-  'Bir insanda ilk fark ettigin sey ne olur?',
-  'En uzun iliski kac ay surdü?',
-  'Hic birinin seni sevdigini anlayip cevap vermedin mi?',
+  'Sana DM atan son kisi seni ceziyor mu? \uD83D\uDE0F',
+  'Hic birini gizlice takip edip begeni atmak istedin ama elinden kacirdin mi?',
+  'Su an birinin seni dusunmesini ister miydin? Kimin?',
+  'Bir insanda ne dikkatini ceker - gozler mi dudaklar mi?',
+  'Hic flort mesaji yazdin sil-sildin ama gondermek istedin mi? Kime?',
+  'Birinin sana soyledigini en cok hissetmek istedigin cumle nedir?',
+  'Hic biriyle konusurken icinden keske burada olsaydin dedin mi?',
+  'Seni en cok ne tarz bir mesaj heyecanlandirir?',
+  'Gece yatarken en cok kimi dusunuyorsun?',
+  'Hic biriyle goz goze geldiginde ne hissettin?',
+  'Birine kizgin misin yoksa ilgisiz mi - bu ikisi arasinda ne fark var sence?',
+  'Su an biriyle olan gerginligin sebebi ne?',
+  'Hic biz sadece arkadasiz dedikten sonra kendine yalan soyledin mi?',
+  'Bir insanla ayni muzigi dinlemek seni nasil hissettiriyor?',
+  'Hic birine bakip icinden keske beni fark etseydi dedin mi?',
 ];
 const DARE_QS=[
-  'Bana en sevdigin emoji kombinasyonunu yaz \uD83D\uDE18',
-  'Simdi beni bir cumleyle tanımla \uD83E\uDD14',
-  'Bana en son baktığın profili anlat',
-  'Hic flort etmeyi deneyip kotu giden bir aninı anlat',
-  'Beni bir hayvanla kiyasla ve neden soyle',
-  'Su an yanda biri olsaydı ne yapardın?',
-  'Bana en cok ne merak ediyorsun sor',
-  '3 kelimeyle kendini tanıt',
+  'Su an bana gondermekten cekinecegin bir mesaj yaz \uD83D\uDE48',
+  'Beni 3 emoji ile tanimla ve neden sectigini acikla \uD83D\uDE0F',
+  'Bana en iyi acilis cumleni yaz - ciddiye alacagim \uD83D\uDE09',
+  'Su an yaninda biri olsaydi ne yapardın? Detaylandir \uD83D\uDE0A',
+  'Bana en son kalbini hizlandiran sey ne oldugunu anlat',
+  'Flort icin kullandigin en samimi yontem nedir?',
+  'Beni kelimelerle cizseydin nasil bir tablo cizerdin?',
+  'Hic biriyle yanlislikla parmak parmaga degin mi oldu? Ne hissettin?',
+  'Simdi bana kucuk bir iltifat yap - performans degerlendiriyorum \uD83D\uDE0B',
+  'Sesli mesaj gonderebilseydin ne soylerdin?',
+  'En romantik anin nerede olurdu - sahil mi dag mi cafe mi?',
+  'Beni daha iyi tanımak icin aklindaki en gizli soruyu sor',
+  'Su ana kadar kimsenin soylememedigi bir sey soylemememi ister misin?',
   'Sessiz secisinde beni secer miydin, dogruysa neden?',
-  'Simdi komik bir sey soyle, güldüremezsen kaybet!',
+  'Simdi komik bir sey soyle, guldüremezsen kaybet! \uD83D\uDE04',
 ];
 
 function toast(msg,ms){
@@ -709,7 +720,7 @@ async function loadUsers(){
     await db.from('profiles').update({lat:loc.lat,lng:loc.lng,city:loc.city}).eq('id',me.id);
   }
   var r=await db.from('profiles').select('*').neq('id',me.id);
-  users=r.data||[];
+  users=(r.data||[]).filter(function(u){return(blockedUsers||[]).indexOf(u.id)<0;});
   var r2=await db.from('friendships').select('*').or('sender_id.eq.'+me.id+',receiver_id.eq.'+me.id);
   friends=r2.data||[];
 }
@@ -1375,6 +1386,7 @@ function getChatList(){
 // CHAT VIEW
 function openChat(uid,username,avatarId){
   chatWith=uid;
+  loadLimit(uid);
   var a=av(avatarId);
   var chatMsgs=msgs.filter(function(m){return (m.sender_id===me.id&&m.receiver_id===uid)||(m.sender_id===uid&&m.receiver_id===me.id);}).reverse();
   var msgsHtml=chatMsgs.map(function(m){
@@ -1458,18 +1470,23 @@ async function sendPhoto(input){
 
 // MSG LIMIT - 5 per 12h, unlimited for premium
 var IS_PREMIUM=false;
-function loadLimit(){
+function limitKey(uid){return 'tb_lim_'+(uid||'x');}
+function loadLimit(uid){
   IS_PREMIUM=myProf&&myProf.is_premium===true;
   if(IS_PREMIUM){msgLimit={n:999,resetAt:null};return;}
-  var s=localStorage.getItem('tb_lim');
-  if(s){var d=JSON.parse(s);if(d.resetAt&&Date.now()>d.resetAt){msgLimit={n:5,resetAt:null};localStorage.removeItem('tb_lim');}else msgLimit=d;}
-  else{msgLimit={n:5,resetAt:null};}
+  msgLimitTarget=uid||null;
+  if(!uid){msgLimit={n:5,resetAt:null};return;}
+  var s=localStorage.getItem(limitKey(uid));
+  if(s){var d=JSON.parse(s);
+    if(d.resetAt&&Date.now()>d.resetAt){msgLimit={n:5,resetAt:null};localStorage.removeItem(limitKey(uid));}
+    else msgLimit=d;
+  }else{msgLimit={n:5,resetAt:null};}
 }
 function decLimit(){
   if(IS_PREMIUM)return;
   msgLimit.n=Math.max(0,msgLimit.n-1);
   if(msgLimit.n===0)msgLimit.resetAt=Date.now()+(12*60*60*1000);
-  localStorage.setItem('tb_lim',JSON.stringify(msgLimit));
+  if(msgLimitTarget)localStorage.setItem(limitKey(msgLimitTarget),JSON.stringify(msgLimit));
 }
 function getLimitTime(){
   if(IS_PREMIUM)return '\u2728 Premium - Sinirsiz';
@@ -1581,11 +1598,18 @@ function openProf(uid){
   var a=av(u.avatar);
   var isFr=isFriend(uid),isPend=isPending(uid);
   var genIcon={male:'\uD83D\uDC68 Erkek',female:'\uD83D\uDC69 Kiz',other:'\uD83C\uDF08 Diger'};
-  var btnHtml=isFr
-    ?'<button class="btn" onclick="closeModal();directMsg(\''+u.id+'\',\''+u.username+'\',\''+u.avatar+'\')">\uD83D\uDCAC Mesaj Gonder</button>'
-    :isPend
-    ?'<button class="btn btn-outline" disabled>\u23F3 Istek Gonderildi</button>'
-    :'<button class="btn" onclick="addFriend(\''+u.id+'\',\''+u.username+'\')">+ Arkadas Ekle</button>';
+  var isBlocked=(blockedUsers||[]).indexOf(uid)>=0;
+  var btnHtml;
+  if(isBlocked){
+    btnHtml='<button class="btn btn-outline" style="color:var(--red);" onclick="unblockUser(\''+uid+'\')">\uD83D\uDEAB Engeli Kaldir</button>';
+  }else if(isFr){
+    btnHtml='<button class="btn" onclick="closeModal();directMsg(\''+u.id+'\',\''+u.username+'\',\''+u.avatar+'\')">\uD83D\uDCAC Mesaj Gonder</button>'+
+      '<button class="btn btn-outline btn-sm" style="color:var(--orange);margin-top:6px;" onclick="removeFriend(\''+uid+'\')">\u274C Arkadasliktan Cikar</button>';
+  }else if(isPend){
+    btnHtml='<button class="btn btn-outline" onclick="cancelFriendReq(\''+uid+'\')">\u21A9 Istegi Geri Cek</button>';
+  }else{
+    btnHtml='<button class="btn" onclick="addFriend(\''+u.id+'\',\''+u.username+'\')">+ Arkadas Ekle</button>';
+  }
   showModal(
     '<div style="text-align:center;margin-bottom:16px;">'+
       '<div style="font-size:60px;margin-bottom:10px;">'+a.e+'</div>'+
@@ -1602,12 +1626,14 @@ function openProf(uid){
     '<div style="display:flex;flex-direction:column;gap:8px;">'+
       btnHtml+
       '<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(239,68,68,.3);" onclick="showReport(\''+uid+'\',\''+u.username+'\')">\uD83D\uDEA9 Sikayet Et</button>'+
+      '<button class="btn btn-outline btn-sm" style="color:var(--muted);border-color:rgba(100,100,100,.3);margin-top:4px;" onclick="blockUser(\''+uid+'\',\''+u.username+'\')">\uD83D\uDEAB Engelle</button>'+
     '</div>',
   '\uD83D\uDC64 '+u.username);
 }
 
 function directMsg(uid,username,avatarId){
   closeModal();
+  loadLimit(uid);
   chatWith=uid;
   var isMob=window.innerWidth<768;
   if(isMob){curPage='messages';document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});var ni=document.getElementById('ni-messages');if(ni)ni.classList.add('active');}
@@ -1869,28 +1895,33 @@ function ago(dateStr){
   if(m<1)return 'Az once';if(m<60)return m+'dk';if(h<24)return h+'sa';return d+'g';
 }
 
-// INIT - persistSession keeps user logged in
+// INIT - robust session restore
 async function init(){
-  var r=await db.auth.getSession();
-  var session=r.data.session;
-  if(session){
-    me=session.user;
-    await loadMyProf();
-    if(!myProf){show('setupScreen');renderSetup();}
-    else startApp();
-  }else{
-    show('authScreen');
-  }
+  document.body.style.opacity='0';
+  try{
+    var r=await db.auth.getSession();
+    var session=(r.data&&r.data.session)?r.data.session:null;
+    if(!session){
+      try{var ref=await db.auth.refreshSession();session=(ref.data&&ref.data.session)?ref.data.session:null;}catch(e){}
+    }
+    if(session&&session.user){
+      me=session.user;
+      await loadMyProf();
+      if(!myProf){show('setupScreen');renderSetup();}
+      else startApp();
+    }else{show('authScreen');}
+  }catch(err){console.error('Init:',err);show('authScreen');}
+  finally{document.body.style.transition='opacity .25s';document.body.style.opacity='1';}
 }
 
 db.auth.onAuthStateChange(async function(event,session){
-  if(event==='SIGNED_IN'&&session&&!me){
+  if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&session.user&&!me){
     me=session.user;
     await loadMyProf();
     if(!myProf)show('rulesScreen');
-    else startApp();
+    else if(document.getElementById('authScreen')&&document.getElementById('authScreen').style.display!=='none')startApp();
   }
-  if(event==='SIGNED_OUT'){me=null;myProf=null;show('authScreen');}
+  if(event==='SIGNED_OUT'){me=null;myProf=null;friends=[];users=[];show('authScreen');}
 });
 
 // SEARCH & FILTER
@@ -2068,6 +2099,44 @@ function startPayment(){
   },150);
 }
 
+
+// === BLOCK & FRIEND MANAGEMENT ===
+var blockedUsers=JSON.parse(localStorage.getItem('tb_blocked')||'[]');
+function blockUser(uid,username){
+  if(!confirm('\u26A0\uFE0F '+username+' kullanicisini engellemek istiyor musun?'))return;
+  if(blockedUsers.indexOf(uid)<0)blockedUsers.push(uid);
+  localStorage.setItem('tb_blocked',JSON.stringify(blockedUsers));
+  var fr=friends.find(function(f){return(f.sender_id===me.id&&f.receiver_id===uid)||(f.receiver_id===me.id&&f.sender_id===uid);});
+  if(fr)db.from('friendships').delete().eq('id',fr.id).then(function(){friends=friends.filter(function(f){return f.id!==fr.id;});});
+  users=users.filter(function(u){return u.id!==uid;});
+  closeModal();toast('\uD83D\uDEAB '+username+' engellendi.');
+  setTimeout(function(){render(curPage);},400);
+}
+function unblockUser(uid){
+  blockedUsers=blockedUsers.filter(function(id){return id!==uid;});
+  localStorage.setItem('tb_blocked',JSON.stringify(blockedUsers));
+  closeModal();toast('\u2705 Engel kaldirildi.');
+  setTimeout(function(){loadUsers().then(function(){render(curPage);});},400);
+}
+function cancelFriendReq(uid){
+  var fr=friends.find(function(f){return f.sender_id===me.id&&f.receiver_id===uid&&f.status==='pending';});
+  if(!fr){toast('\u274C Istek bulunamadi');return;}
+  db.from('friendships').delete().eq('id',fr.id).then(function(){
+    friends=friends.filter(function(f){return f.id!==fr.id;});
+    closeModal();toast('\u21A9 Istek geri cekildi.');
+    setTimeout(function(){render(curPage);},400);
+  });
+}
+function removeFriend(uid){
+  if(!confirm('Bu kisiyi arkadasliktan cikarmak istiyor musun?'))return;
+  var fr=friends.find(function(f){return(f.sender_id===me.id&&f.receiver_id===uid)||(f.receiver_id===me.id&&f.sender_id===uid);});
+  if(!fr){toast('\u274C Arkadaslik bulunamadi');return;}
+  db.from('friendships').delete().eq('id',fr.id).then(function(){
+    friends=friends.filter(function(f){return f.id!==fr.id;});
+    closeModal();toast('\u274C Arkadasliktan cikarildi.');
+    setTimeout(function(){render(curPage);},400);
+  });
+}
 
 function getPayRef(){
   if(!me)return 'TB'+Math.random().toString(36).substr(2,6).toUpperCase();

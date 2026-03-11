@@ -315,6 +315,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </style>
 </head>
 <body>
+<div id="modalContainer"></div>
 
 
 <!-- AUTH -->
@@ -1819,7 +1820,10 @@ function pageSettings(){
 // LEGAL PAGE
 function pageLegal(){
   return '<div class="legal-section">'+
-    '<div style="font-size:19px;font-weight:900;margin-bottom:16px;">\uD83D\uDCDC Gizlilik & Yasal Kosullar</div>'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">'+
+      '<button onclick="goPage(\'settings\')||deskPage(\'settings\',document.getElementById(\'si-settings\'))" style="background:none;border:none;color:var(--text);font-size:28px;cursor:pointer;padding:0 8px 0 0;line-height:1;">&#8249;</button>'+
+      '<span style="font-size:19px;font-weight:900;">\uD83D\uDCDC Gizlilik & Yasal</span>'+
+    '</div>'+
     '<div class="legal-box">'+
       '<div class="legal-title">\uD83D\uDCCC Kullanici Sozlesmesi</div>'+
       '<div class="legal-text">TanisaBul uygulamasını kullanarak 16 yas ve uzeri oldugunu onaylamis olursun. Hizmetleri yasalara aykiri, rahatsız edici veya zarar verici amaclarla kullanamazsın. Hesabın kisisel kullanımına aittir, baskasına devredilemez. Ihlal durumunda hesabın kalıcı olarak kapatilabilir.</div>'+
@@ -1878,14 +1882,16 @@ function setupRealtime(){
 // MODAL
 function showModal(content,title){
   title=title||'';
-  document.getElementById('modalContainer').innerHTML=
+  var mc=document.getElementById('modalContainer');
+  if(!mc){mc=document.createElement('div');mc.id='modalContainer';document.body.appendChild(mc);}
+  mc.innerHTML=
     '<div class="moverlay" onclick="if(event.target===this)closeModal();">'+
       '<div class="mbox">'+
         '<div class="mtitle">'+title+'<span class="mclose" onclick="closeModal()">&#10005;</span></div>'+
         content+
       '</div></div>';
 }
-function closeModal(){document.getElementById('modalContainer').innerHTML='';}
+function closeModal(){var mc=document.getElementById('modalContainer');if(mc)mc.innerHTML='';}
 
 // LOCATION
 async function getLoc(){
